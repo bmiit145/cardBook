@@ -1,0 +1,131 @@
+// Prisma Schema for Business Card Scanner & Contact Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CardSide {
+  FRONT
+  BACK
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model Admin {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  name         String?  @default("Administrator") @db.VarChar(150)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model Company {
+  id        String            @id @default(uuid()) @db.Uuid
+  name      String            @db.VarChar(255)
+  website   String?           @db.VarChar(255)
+  address   String?           @db.Text
+  city      String?           @db.VarChar(100)
+  state     String?           @db.VarChar(100)
+  country   String?           @db.VarChar(100)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  contacts  BusinessContact[]
+
+  @@index([name])
+  @@map("companies")
+}
+
+model BusinessContact {
+  id             String              @id @default(uuid()) @db.Uuid
+  fullName       String              @map("full_name") @db.VarChar(255)
+  companyId      String?             @map("company_id") @db.Uuid
+  designation    String?             @db.VarChar(255)
+  phone          String?             @db.VarChar(50)
+  alternatePhone String?             @map("alternate_phone") @db.VarChar(50)
+  email          String?             @db.VarChar(255)
+  website        String?             @db.VarChar(255)
+  address        String?             @db.Text
+  city           String?             @db.VarChar(100)
+  state          String?             @db.VarChar(100)
+  country        String?             @db.VarChar(100)
+  notes          String?             @db.Text
+  isDeleted      Boolean             @default(false) @map("is_deleted")
+  deletedAt      DateTime?           @map("deleted_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  company        Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  images         BusinessCardImage[]
+  scanHistories  ScanHistory[]
+  sheetsSyncs    GoogleSheetsSync[]
+
+  @@index([fullName])
+  @@index([phone])
+  @@index([email])
+  @@index([companyId])
+  @@index([isDeleted])
+  @@map("business_contacts")
+}
+
+model BusinessCardImage {
+  id                 String          @id @default(uuid()) @db.Uuid
+  contactId          String          @map("contact_id") @db.Uuid
+  side               CardSide        @default(FRONT)
+  cloudinaryPublicId String          @map("cloudinary_public_id") @db.VarChar(255)
+  cloudinaryAssetId  String?         @map("cloudinary_asset_id") @db.VarChar(255)
+  secureUrl          String          @map("secure_url") @db.Text
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  contact            BusinessContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@map("business_card_images")
+}
+
+model ScanHistory {
+  id              String           @id @default(uuid()) @db.Uuid
+  contactId       String?          @map("contact_id") @db.Uuid
+  originalOcrText String           @map("original_ocr_text") @db.Text
+  extractedJson   Json             @map("extracted_json")
+  status          String           @default("SUCCESS") @db.VarChar(50)
+  errorMessage    String?          @map("error_message") @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  contact         BusinessContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([contactId])
+  @@map("scan_history")
+}
+
+model GoogleSheetsSync {
+  id                String          @id @default(uuid()) @db.Uuid
+  contactId         String          @map("contact_id") @db.Uuid
+  status            SyncStatus      @default(PENDING)
+  spreadsheetId     String?         @map("spreadsheet_id") @db.VarChar(255)
+  sheetRowReference String?         @map("sheet_row_reference") @db.VarChar(100)
+  retryCount        Int             @default(0) @map("retry_count")
+  lastError         String?         @map("last_error") @db.Text
+  lastSyncedAt      DateTime?       @map("last_synced_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  contact           BusinessContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([status])
+  @@map("google_sheets_sync")
+}
+

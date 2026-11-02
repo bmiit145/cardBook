@@ -1,0 +1,30 @@
+{
+  "name": "business-card-scanner-monorepo",
+  "version": "1.0.0",
+  "description": "Business Card Scanner and Contact Management System",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run server\" \"npm run client\"",
+    "client": "npm --prefix client run dev",
+    "server": "npm --prefix server run dev",
+    "start": "npm --prefix server run start",
+    "build:client": "npm --prefix client run build",
+    "test:e2e": "node server/test-e2e.js",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:migrate": "npm --prefix server run prisma:migrate",
+    "prisma:seed": "npm --prefix server run prisma:seed"
+  },
+  "keywords": [
+    "business-card-scanner",
+    "ocr",
+    "google-vision",
+    "cloudinary",
+    "google-sheets",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
