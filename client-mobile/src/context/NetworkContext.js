@@ -68,3 +68,4 @@ export function NetworkProvider({ children }) {
 export function useNetwork() {
   return useContext(NetworkContext);
 }
+

@@ -13,6 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import AppLayout from '../components/AppLayout';
 import { scanService } from '../services/scanService';
+import { onDeviceOcrService } from '../services/onDeviceOcrService';
 import { getBaseApiUrl } from '../services/api';
 import { useNetwork } from '../context/NetworkContext';
 import { colors, radii, shadows } from '../theme/theme';
@@ -145,24 +146,35 @@ export default function ScanScreen({ navigation }) {
       return;
     }
 
-    if (!isOnline) {
-      // Offline mode: proceed to ReviewScreen directly with photo
-      navigation.navigate('ReviewScreen', {
-        extractedData: {
-          extractedFields: {},
-          rawText: '(Card photographed in offline mode — will process OCR when reconnected)',
-          confidence: 0,
-          needsReview: true,
-          reviewReasons: ['Photographed in Offline Mode.'],
-        },
-        frontPreview: frontImageUri,
-        backPreview: backImageUri,
-      });
-      return;
-    }
-
     setError('');
     setIsProcessing(true);
+
+    if (!isOnline) {
+      try {
+        // Run On-Device OCR directly on the phone processor (Zero Internet & Zero Backend)
+        const onDeviceResult = await onDeviceOcrService.processCardOnDevice(frontImageUri);
+        navigation.navigate('ReviewScreen', {
+          extractedData: onDeviceResult,
+          frontPreview: frontImageUri,
+          backPreview: backImageUri,
+        });
+      } catch (err) {
+        console.warn('On-device OCR fallback:', err);
+        navigation.navigate('ReviewScreen', {
+          extractedData: {
+            extractedFields: {},
+            rawText: '',
+            confidence: 0,
+            needsReview: true,
+          },
+          frontPreview: frontImageUri,
+          backPreview: backImageUri,
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
 
     try {
       const response = await scanService.processOcr({
@@ -185,34 +197,17 @@ export default function ScanScreen({ navigation }) {
         });
       }
     } catch (err) {
-      console.warn('Scan processing error:', err.message);
-      if (!err.response) {
-        // Network connection error - offer offline review
-        Alert.alert(
-          'Network Unavailable',
-          'Server could not be reached. Review and save card details to your phone offline queue?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Save Offline',
-              onPress: () => {
-                navigation.navigate('ReviewScreen', {
-                  extractedData: {
-                    extractedFields: {},
-                    rawText: '(Captured while offline)',
-                    confidence: 0,
-                    needsReview: true,
-                  },
-                  frontPreview: frontImageUri,
-                  backPreview: backImageUri,
-                });
-              },
-            },
-          ]
-        );
-      } else {
-        const msg = err.response?.data?.message || 'Failed to process card OCR.';
-        setError(msg);
+      console.warn('Backend OCR unreachable, running On-Device OCR:', err.message);
+      // Run On-Device OCR directly so the user NEVER has to manually type anything!
+      try {
+        const onDeviceResult = await onDeviceOcrService.processCardOnDevice(frontImageUri);
+        navigation.navigate('ReviewScreen', {
+          extractedData: onDeviceResult,
+          frontPreview: frontImageUri,
+          backPreview: backImageUri,
+        });
+      } catch (onDeviceErr) {
+        setError('Failed to process card OCR on device: ' + onDeviceErr.message);
       }
     } finally {
       setIsProcessing(false);
