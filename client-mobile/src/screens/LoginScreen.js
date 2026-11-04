@@ -17,7 +17,7 @@ import { getBaseApiUrl, setCustomServerUrl } from '../services/api';
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('admin@businesscards.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [password, setPassword] = useState('Admin@12345');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
