@@ -10,6 +10,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { createContact, saveToPhoneAddressBook } from '../services/contactService';
 
@@ -349,3 +350,4 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
+
