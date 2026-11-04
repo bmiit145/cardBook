@@ -1,20 +1,50 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
-import { Platform } from 'react-native';
-
-// Default host based on platform:
-// - Android Emulator uses 10.0.2.2 to reach host machine localhost
-// - iOS Simulator and Web use localhost
-export const DEFAULT_API_URL = Platform.select({
-  android: 'http://10.0.2.2:5000/api/v1',
-  default: 'http://localhost:5000/api/v1',
-});
+import { Platform, NativeModules } from 'react-native';
+import Constants from 'expo-constants';
 
 export const TOKEN_KEY = 'admin_jwt_token';
 export const ADMIN_KEY = 'admin_user_data';
 export const SERVER_URL_KEY = 'custom_server_url';
 
 let cachedServerUrl = null;
+
+/**
+ * Automatically detects host machine IP from Expo Go's manifest/hostUri
+ * e.g., if phone connected via Wi-Fi to exp://192.168.1.36:8082,
+ * the backend API defaults to http://192.168.1.36:5000/api/v1
+ */
+export function resolveDefaultApiUrl() {
+  try {
+    const hostUri =
+      Constants?.expoConfig?.hostUri ||
+      Constants?.manifest?.debuggerHost ||
+      Constants?.manifest2?.extra?.expoGo?.debuggerHost ||
+      Constants?.linkingUri;
+
+    if (hostUri) {
+      const match = hostUri.match(/(?:exp:\/\/)?([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+      if (match && match[1]) {
+        return `http://${match[1]}:5000/api/v1`;
+      }
+    }
+
+    const scriptURL = NativeModules?.SourceCode?.scriptURL;
+    if (scriptURL) {
+      const match = scriptURL.match(/http:\/\/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):/);
+      if (match && match[1]) {
+        return `http://${match[1]}:5000/api/v1`;
+      }
+    }
+  } catch (_) {}
+
+  return Platform.select({
+    android: 'http://10.0.2.2:5000/api/v1',
+    default: 'http://localhost:5000/api/v1',
+  });
+}
+
+export const DEFAULT_API_URL = resolveDefaultApiUrl();
 
 export async function getBaseApiUrl() {
   if (cachedServerUrl) return cachedServerUrl;
@@ -25,7 +55,7 @@ export async function getBaseApiUrl() {
       return cachedServerUrl;
     }
   } catch (_) {}
-  cachedServerUrl = DEFAULT_API_URL;
+  cachedServerUrl = resolveDefaultApiUrl();
   return cachedServerUrl;
 }
 
@@ -75,4 +105,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
