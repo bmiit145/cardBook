@@ -7,9 +7,9 @@ import {
   Modal,
   TouchableWithoutFeedback,
   ScrollView,
-  SafeAreaView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii, shadows } from '../theme/theme';
 import { useAuth } from '../context/AuthContext';
 

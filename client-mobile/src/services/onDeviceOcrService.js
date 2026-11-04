@@ -43,3 +43,4 @@ export const onDeviceOcrService = {
 };
 
 export default onDeviceOcrService;
+

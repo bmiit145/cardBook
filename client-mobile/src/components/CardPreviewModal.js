@@ -6,9 +6,9 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii } from '../theme/theme';
 
 const { width, height } = Dimensions.get('window');
