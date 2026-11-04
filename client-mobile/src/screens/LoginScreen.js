@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,138 +9,132 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  StatusBar,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { getBaseApiUrl, setCustomServerUrl } from '../services/api';
+import { colors, radii, shadows } from '../theme/theme';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
   const [email, setEmail] = useState('admin@businesscards.com');
   const [password, setPassword] = useState('Admin@12345');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const [serverUrl, setServerUrl] = useState('');
-  const [showServerConfig, setShowServerConfig] = useState(false);
-
-  useEffect(() => {
-    getBaseApiUrl().then(setServerUrl);
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      setError('Please enter both email and password.');
+      setError('Please provide your admin email and password.');
       return;
     }
 
+    setError('');
+    setIsSubmitting(true);
+
     try {
-      setLoading(true);
-      setError('');
       await login(email.trim(), password);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Login failed. Please check credentials or server connection.';
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'Login failed. Please verify credentials or server connectivity.';
       setError(msg);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveServerUrl = async () => {
-    try {
-      await setCustomServerUrl(serverUrl);
-      Alert.alert('Server URL Updated', `API will now connect to: ${serverUrl}`);
-      setShowServerConfig(false);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to save server URL.');
+      setIsSubmitting(false);
     }
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>📇</Text>
-          </View>
-          <Text style={styles.title}>CardScan AI</Text>
-          <Text style={styles.subtitle}>Mobile Business Card Scanner & Sync</Text>
-        </View>
-
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Admin Sign In</Text>
+          {/* Header Icon */}
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.cardEmoji}>💳</Text>
+            </View>
+            <Text style={styles.title}>CardScan Admin Portal</Text>
+            <Text style={styles.subtitle}>
+              Business Card Scanner & Contact Management
+            </Text>
+          </View>
 
+          {/* Error Alert */}
           {error ? (
-            <View style={styles.errorBox}>
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorIcon}>⚠️</Text>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <Text style={styles.label}>Admin Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="admin@businesscards.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••••••"
-            secureTextEntry
-          />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In to Dashboard</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.configToggle}
-            onPress={() => setShowServerConfig(!showServerConfig)}
-          >
-            <Text style={styles.configToggleText}>
-              {showServerConfig ? '▲ Hide Server Settings' : '⚙️ Configure Server IP / URL'}
-            </Text>
-          </TouchableOpacity>
-
-          {showServerConfig && (
-            <View style={styles.configBox}>
-              <Text style={styles.configLabel}>Backend API Endpoint URL:</Text>
-              <TextInput
-                style={styles.configInput}
-                value={serverUrl}
-                onChangeText={setServerUrl}
-                placeholder="http://192.168.1.X:5000/api/v1"
-                autoCapitalize="none"
-              />
-              <Text style={styles.configHint}>
-                • Android Emulator: http://10.0.2.2:5000/api/v1{'\n'}
-                • Real Phone on Wi-Fi: http://&lt;Your_PC_IP&gt;:5000/api/v1
-              </Text>
-              <TouchableOpacity
-                style={styles.saveConfigBtn}
-                onPress={handleSaveServerUrl}
-              >
-                <Text style={styles.saveConfigBtnText}>Save Server URL</Text>
-              </TouchableOpacity>
+          {/* Form */}
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Admin Email</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLeadingIcon}>✉️</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="admin@businesscards.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
             </View>
-          )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLeadingIcon}>🔒</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* Quick Demo Credentials Box */}
+            <View style={styles.credentialsBox}>
+              <Text style={styles.credentialsTitle}>Default Admin Credentials:</Text>
+              <Text style={styles.credentialsText}>
+                admin@businesscards.com / Admin@12345
+              </Text>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
+              onPress={handleLogin}
+              disabled={isSubmitting}
+              activeOpacity={0.85}
+            >
+              {isSubmitting ? (
+                <View style={styles.btnRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.submitBtnText}>Authenticating...</Text>
+                </View>
+              ) : (
+                <View style={styles.btnRow}>
+                  <Text style={styles.submitBtnText}>Sign In to Dashboard</Text>
+                  <Text style={styles.submitBtnArrow}>→</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -148,83 +142,146 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  header: { alignItems: 'center', marginBottom: 28 },
-  logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
+  container: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 20,
   },
-  logoIcon: { fontSize: 32 },
-  title: { fontSize: 28, fontWeight: '700', color: '#0F172A' },
-  subtitle: { fontSize: 14, color: '#64748B', marginTop: 4 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3,
+    backgroundColor: colors.bgCard,
+    borderRadius: 16,
+    paddingHorizontal: 28,
+    paddingVertical: 36,
+    width: '100%',
+    maxWidth: 440,
+    ...shadows.lg,
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', color: '#1E293B', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '500', color: '#475569', marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#0F172A',
-    marginBottom: 16,
-    backgroundColor: '#F8FAFC',
-  },
-  button: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 14,
+  header: {
     alignItems: 'center',
+    marginBottom: 26,
+  },
+  iconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: radii.lg,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  cardEmoji: {
+    fontSize: 28,
+  },
+  title: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
     marginTop: 6,
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  errorBox: {
-    backgroundColor: '#FEE2E2',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  errorText: { color: '#B91C1C', fontSize: 13, fontWeight: '500' },
-  configToggle: { marginTop: 20, alignItems: 'center' },
-  configToggleText: { color: '#2563EB', fontSize: 13, fontWeight: '500' },
-  configBox: {
-    marginTop: 14,
-    padding: 14,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-  },
-  configLabel: { fontSize: 12, fontWeight: '600', color: '#334155', marginBottom: 6 },
-  configInput: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    padding: 8,
-    fontSize: 13,
-    backgroundColor: '#FFFFFF',
-  },
-  configHint: { fontSize: 11, color: '#64748B', marginTop: 6, lineHeight: 16 },
-  saveConfigBtn: {
-    marginTop: 10,
-    backgroundColor: '#0F172A',
-    borderRadius: 8,
-    paddingVertical: 8,
+  errorBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.dangerLight,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    borderRadius: radii.md,
+    padding: 12,
+    marginBottom: 18,
   },
-  saveConfigBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  errorIcon: {
+    fontSize: 14,
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.dangerDark,
+    flex: 1,
+  },
+  form: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgCard,
+    paddingHorizontal: 12,
+  },
+  inputLeadingIcon: {
+    fontSize: 15,
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    height: 44,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  credentialsBox: {
+    backgroundColor: colors.bgMain,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: 12,
+  },
+  credentialsTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  credentialsText: {
+    fontSize: 12,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  submitBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    ...shadows.sm,
+  },
+  submitBtnDisabled: {
+    opacity: 0.65,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  submitBtnText: {
+    color: colors.textWhite,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  submitBtnArrow: {
+    color: colors.textWhite,
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });

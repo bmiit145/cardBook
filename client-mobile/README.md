@@ -1,81 +1,83 @@
-# CardScan AI - Mobile Application (React Native + Expo)
+# CardScan AI - Mobile Client (React Native + Expo)
 
-Android-first, iOS-compatible mobile business card scanner powered by our centralized Node.js Express backend and PostgreSQL database.
-
----
-
-## 1. Features
-
-- **Centralized Authentication**: Shared admin identity using `admin@businesscards.com`. Tokens stored in hardware-encrypted storage via `expo-secure-store`.
-- **Card Camera & Gallery Scan**: Photograph or upload business cards (front and optional back).
-- **High-Accuracy Local OCR**: Automatically uploads to `/api/v1/scans/ocr`, utilizing OpenCV 5 deskewing, Sharp CLAHE/polarity inversion, and official `tessdata_best` models (English, Gujarati, Hindi).
-- **Field Review & Edit**: Real-time review screen with OCR confidence rating, needs-review flags, and raw OCR inspection.
-- **Native Address Book Integration**: 1-tap "Save to Device Contacts" via `expo-contacts` writes directly into the Android/phone contact list.
-- **Quick Communication Actions**: 1-tap Phone Call (`tel:`), 1-tap WhatsApp (`wa.me`), and 1-tap Email (`mailto:`).
-- **Instant Synchronization**: Every saved or edited contact is immediately accessible on the web dashboard (`http://localhost:5173`) and queued for Google Sheets sync.
+Cross-platform mobile application for Android, iOS, and Web preview designed with complete visual, layout, and UX parity to the React + Vite web application.
 
 ---
 
-## 2. Project Structure
+## Features
 
-```
-client-mobile/
-├── app.json                  # Expo metadata, Android package, permissions
-├── App.js                    # Main Navigation (Stack + Bottom Tabs)
-├── package.json
-└── src/
-    ├── context/
-    │   └── AuthContext.js    # Auth state with SecureStore persistence
-    ├── screens/
-    │   ├── LoginScreen.js    # Admin sign-in & server IP configuration
-    │   ├── DashboardScreen.js# Live metrics & Google Sheets sync
-    │   ├── ScanScreen.js     # Camera card capture & AI OCR trigger
-    │   ├── ReviewScreen.js   # Extracted contact review & save
-    │   ├── ContactsScreen.js # Searchable contacts list & quick actions
-    │   └── SettingsScreen.js # Server URL config & admin profile
-    └── services/
-        ├── api.js            # Axios client with Bearer token injection
-        ├── authService.js    # Login, logout, SecureStore management
-        ├── scanService.js    # Multipart/form-data upload to /scans/ocr
-        ├── contactService.js # Contacts CRUD & expo-contacts device saving
-        └── dashboardService.js# Metrics & Google Sheets sync triggers
-```
+- **Exact Web Design System Parity**:
+  - Color palette, typography, radii, and elevated card shadows matching `client/src/styles/global.css`.
+  - Responsive **Slide-Out Sidebar Navigation Drawer** matching `client/src/components/Sidebar.jsx` (Brand header, Scan button, nav links with active blue pill highlights, admin profile with logout).
+  - Sticky **Top Navigation Bar** matching `client/src/components/Header.jsx` with hamburger drawer trigger, screen title, and green `🛡️ Admin Active` badge.
+  - Quick bottom tab navigation for mobile ergonomics.
+- **Admin Authentication**:
+  - Dark-slate theme login matching web `Login.jsx` (`#0F172A`).
+  - Seamless dual auth: Bearer JWT in mobile secure storage / local storage.
+- **Admin Control Center (Dashboard)**:
+  - 4 KPI StatCards: Total Contacts (blue), Companies (purple), Cards Scanned Today (green), Failed Scans/OCR (amber).
+  - Dark gradient Google Sheets action banner with live sync metrics.
+  - Recent Saved Contacts list with Google Sheets status badges (`SYNCED`, `PENDING`, `FAILED`).
+  - Recent Scans list with OCR status (`SUCCESS`, `FAILED`).
+- **Business Card Scanner**:
+  - Single-Sided vs Double-Sided card toggle.
+  - **Trained Cards Testing Suite**: One-tap sample selector for 78 Real Examples and 50 Benchmark Suite cards.
+  - Camera capture and photo gallery picker via `expo-image-picker`.
+  - Instant offline multi-PSM Tesseract OCR processing with CLAHE contrast enhancement.
+- **Extracted Contact Review**:
+  - Manual review alert banner if OCR confidence < 60% with specific reason bullets.
+  - Original Card photo preview with "Full View" zoom modal.
+  - Collapsible Raw OCR Text recognized box.
+  - Sectioned form fields matching web `ContactForm.jsx` (Identity, Communication, Address & Location, Notes).
+  - Detected Name, Phone, and Email suggestion pills.
+  - Duplicate contact check modal before saving.
+  - Native Phone Address Book sync via `expo-contacts`.
+- **Contact Directory**:
+  - Search by name, company, email, or phone.
+  - Filter by Google Sheets status (`SYNCED`, `PENDING`, `FAILED`).
+  - One-tap quick action buttons for calling (`tel:`), messaging, and email (`mailto:`).
+  - Soft-delete confirmation dialog.
+  - Pagination controls.
+- **Contact Details**:
+  - Original card photo with full-view modal.
+  - Google Sheets synchronization status box with on-demand manual sync button.
+  - Full editable contact details view.
+- **Company Directory**:
+  - Search companies.
+  - Add Company modal with Name, Website, Address, City, State.
+  - Contact count badge and direct filter link.
+- **Integrations & System Settings**:
+  - Primary Database (PostgreSQL & Prisma) operational status.
+  - Google Cloud Vision / Local Tesseract OCR engine status.
+  - Cloudinary original card vault status.
+  - Google Sheets sync retry button.
+  - Mobile custom API Base URL configurator (for testing on real Android phones via Wi-Fi).
+  - Admin Password change settings.
 
 ---
 
-## 3. Getting Started
+## Getting Started
 
-### Prerequisites
-Make sure your shared backend server is running on port 5000:
+### 1. Install Dependencies
 ```bash
-# In project root
-npm run server
+npm install
 ```
 
-### Running on Android Emulator
+### 2. Run on Web Preview
 ```bash
-# In project root
-npm run android
-# Or inside client-mobile:
-cd client-mobile
+npm run web
+```
+Opens in your browser at `http://localhost:8081`.
+
+### 3. Run on Android Device / Emulator
+```bash
 npm run android
 ```
-*Note: The app automatically detects Android Emulator and routes API calls to `http://10.0.2.2:5000/api/v1`.*
-
-### Running on a Physical Android Phone (Expo Go)
-1. Install **Expo Go** from the Google Play Store on your phone.
-2. Ensure your phone and development PC are connected to the same Wi-Fi network.
-3. Start the mobile app:
-   ```bash
-   npm run mobile
-   ```
-4. Scan the QR code displayed in the terminal with the Expo Go app.
-5. In the app login screen, tap **"⚙️ Configure Server IP / URL"** and set:
-   `http://<YOUR_PC_LOCAL_IP>:5000/api/v1` (e.g. `http://192.168.1.15:5000/api/v1`).
+Or scan the Metro QR code using the **Expo Go** app on your Android phone (ensure the phone is connected to the same Wi-Fi network as your computer).
 
 ---
 
-## 4. Default Admin Credentials
+## Default Admin Credentials
 
 - **Email**: `admin@businesscards.com`
-- **Password**: `Admin@123456`
+- **Password**: `Admin@12345`

@@ -2,280 +2,593 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  RefreshControl,
+  StyleSheet,
   TouchableOpacity,
+  RefreshControl,
   ActivityIndicator,
-  Alert,
+  Share,
 } from 'react-native';
-import { getDashboardMetrics, triggerGoogleSheetsSync } from '../services/dashboardService';
-import { useAuth } from '../context/AuthContext';
+import AppLayout from '../components/AppLayout';
+import StatCard from '../components/StatCard';
+import { dashboardService } from '../services/dashboardService';
+import { colors, radii, shadows } from '../theme/theme';
 
 export default function DashboardScreen({ navigation }) {
-  const { admin, logout } = useAuth();
-  const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
-  const fetchMetrics = useCallback(async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
-      const data = await getDashboardMetrics();
-      setMetrics(data);
+      const res = await dashboardService.getDashboardStats();
+      if (res?.data) {
+        setData(res.data);
+      }
     } catch (err) {
-      console.warn('Error fetching dashboard metrics:', err.message);
+      console.error('Error fetching dashboard stats:', err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMetrics();
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchMetrics();
-    });
-    return unsubscribe;
-  }, [fetchMetrics, navigation]);
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-  const handleSyncSheets = async () => {
-    try {
-      setSyncing(true);
-      const res = await triggerGoogleSheetsSync();
-      Alert.alert('Google Sheets Sync', res.message || 'Synchronization initiated successfully!');
-      fetchMetrics();
-    } catch (err) {
-      Alert.alert('Sync Error', err.response?.data?.message || err.message || 'Failed to sync Google Sheets.');
-    } finally {
-      setSyncing(false);
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDashboard();
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading dashboard metrics...</Text>
-      </View>
-    );
-  }
+  const stats = data?.stats || {};
+  const syncStatus = stats.syncStatus || {};
+  const recentContacts = data?.recentContacts || [];
+  const recentScans = data?.recentScans || [];
 
-  const counts = metrics?.counts || { totalContacts: 0, totalCompanies: 0, totalScans: 0, syncedContacts: 0 };
-  const recentContacts = metrics?.recentContacts || [];
+  const handleExportShare = async () => {
+    try {
+      const exportSummary = `CardScan AI Export Summary:\nTotal Contacts: ${stats.totalContacts || 0}\nCompanies: ${stats.totalCompanies || 0}\nGoogle Sheets Synced: ${syncStatus.synced || 0}`;
+      await Share.share({
+        message: exportSummary,
+        title: 'CardScan AI Contacts Export',
+      });
+    } catch (_) {}
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMetrics(); }} />}
+    <AppLayout
+      title="Admin Dashboard"
+      navigation={navigation}
+      activeRoute="DashboardTab"
     >
-      {/* Top Banner */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.adminName}>{admin?.name || 'Administrator'}</Text>
-        </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Main Action Banner */}
-      <TouchableOpacity
-        style={styles.heroAction}
-        onPress={() => navigation.navigate('ScanTab')}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       >
-        <View style={styles.heroIconBox}>
-          <Text style={styles.heroIcon}>📷</Text>
-        </View>
-        <View style={styles.heroTextContainer}>
-          <Text style={styles.heroTitle}>Scan Business Card</Text>
-          <Text style={styles.heroSubtitle}>Capture front/back & extract with AI OCR</Text>
-        </View>
-        <Text style={styles.heroArrow}>➔</Text>
-      </TouchableOpacity>
+        {/* Page Title & Quick Actions */}
+        <View style={styles.headerBlock}>
+          <View style={styles.titleArea}>
+            <Text style={styles.title}>Admin Control Center</Text>
+            <Text style={styles.subtitle}>
+              Real-time overview of visiting card scans, OCR extraction, and CRM contacts
+            </Text>
+          </View>
 
-      {/* Metrics Grid */}
-      <Text style={styles.sectionTitle}>Overview & Stats</Text>
-      <View style={styles.grid}>
-        <View style={[styles.statCard, { borderLeftColor: '#2563EB' }]}>
-          <Text style={styles.statNumber}>{counts.totalContacts}</Text>
-          <Text style={styles.statLabel}>Total Contacts</Text>
-        </View>
-        <View style={[styles.statCard, { borderLeftColor: '#10B981' }]}>
-          <Text style={styles.statNumber}>{counts.totalCompanies}</Text>
-          <Text style={styles.statLabel}>Companies</Text>
-        </View>
-        <View style={[styles.statCard, { borderLeftColor: '#8B5CF6' }]}>
-          <Text style={styles.statNumber}>{counts.totalScans}</Text>
-          <Text style={styles.statLabel}>Scans Executed</Text>
-        </View>
-        <View style={[styles.statCard, { borderLeftColor: '#F59E0B' }]}>
-          <Text style={styles.statNumber}>{counts.syncedContacts}</Text>
-          <Text style={styles.statLabel}>Google Sheets Synced</Text>
-        </View>
-      </View>
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity
+              style={styles.btnSecondary}
+              onPress={handleExportShare}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.btnSecondaryIcon}>📥</Text>
+              <Text style={styles.btnSecondaryText}>Export CSV</Text>
+            </TouchableOpacity>
 
-      {/* Google Sheets Trigger */}
-      <TouchableOpacity
-        style={styles.syncBtn}
-        onPress={handleSyncSheets}
-        disabled={syncing}
-      >
-        {syncing ? (
-          <ActivityIndicator color="#fff" size="small" />
+            <TouchableOpacity
+              style={styles.btnPrimary}
+              onPress={() => navigation.navigate('ScanTab')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnPrimaryIcon}>📷</Text>
+              <Text style={styles.btnPrimaryText}>Scan New Card</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {isLoading && !refreshing ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading dashboard metrics...</Text>
+          </View>
         ) : (
-          <Text style={styles.syncBtnText}>📊 Sync with Google Sheets Now</Text>
+          <>
+            {/* KPI Stat Cards Grid */}
+            <View style={styles.statsContainer}>
+              <StatCard
+                title="Total Contacts"
+                value={stats.totalContacts}
+                subtitle="Saved in PostgreSQL database"
+                icon="👥"
+                variant="blue"
+                onPress={() => navigation.navigate('ContactsTab')}
+              />
+              <StatCard
+                title="Companies"
+                value={stats.totalCompanies}
+                subtitle="Registered company profiles"
+                icon="🏢"
+                variant="purple"
+                onPress={() => navigation.navigate('CompaniesTab')}
+              />
+              <StatCard
+                title="Cards Scanned Today"
+                value={stats.cardsScannedToday}
+                subtitle="Today's scan activity"
+                icon="📷"
+                variant="green"
+              />
+              <StatCard
+                title="Failed Scans / OCR"
+                value={stats.failedOcrCount}
+                subtitle="Requires review or retry"
+                icon="⚠️"
+                variant="amber"
+              />
+            </View>
+
+            {/* Google Sheets Sync Highlight Banner */}
+            <View style={styles.actionBanner}>
+              <View style={styles.actionBannerContent}>
+                <View style={styles.bannerTitleRow}>
+                  <Text style={styles.bannerEmoji}>📊</Text>
+                  <Text style={styles.bannerHeading}>Google Sheets Contact Register</Text>
+                </View>
+                <Text style={styles.bannerDesc}>
+                  Contacts are automatically synchronized to your central Google Spreadsheet.
+                </Text>
+                <View style={styles.bannerStatsRow}>
+                  <Text style={styles.statPillGreen}>Synced: {syncStatus.synced || 0}</Text>
+                  <Text style={styles.statPillYellow}>Pending: {syncStatus.pending || 0}</Text>
+                  <Text style={styles.statPillRed}>Failed: {syncStatus.failed || 0}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.bannerBtn}
+                onPress={() => navigation.navigate('SettingsTab')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.bannerBtnText}>View Integration Status →</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Recently Saved Contacts Section */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recently Saved Contacts</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ContactsTab')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>View All →</Text>
+                </TouchableOpacity>
+              </View>
+
+              {recentContacts.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyEmoji}>📭</Text>
+                  <Text style={styles.emptyTitle}>No contacts created yet.</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Click 'Scan New Card' to scan your first business card!
+                  </Text>
+                </View>
+              ) : (
+                recentContacts.map((contact) => {
+                  const sync = contact.sheetsSyncs?.[0];
+                  const syncState = sync?.status || 'PENDING';
+                  return (
+                    <TouchableOpacity
+                      key={contact.id}
+                      style={styles.recordItem}
+                      onPress={() =>
+                        navigation.navigate('ContactDetailsScreen', { contactId: contact.id })
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.recordLeft}>
+                        <Text style={styles.recordName}>{contact.fullName}</Text>
+                        {contact.designation ? (
+                          <Text style={styles.recordDesignation}>{contact.designation}</Text>
+                        ) : null}
+                        {contact.company?.name ? (
+                          <Text style={styles.recordCompany}>🏢 {contact.company.name}</Text>
+                        ) : null}
+                        <View style={styles.contactDetailsRow}>
+                          {contact.phone ? (
+                            <Text style={styles.recordPhone}>📞 {contact.phone}</Text>
+                          ) : null}
+                          {contact.email ? (
+                            <Text style={styles.recordEmail}>✉️ {contact.email}</Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      <View style={styles.recordRight}>
+                        <View
+                          style={[
+                            styles.syncBadge,
+                            syncState === 'SYNCED'
+                              ? styles.syncBadgeSuccess
+                              : syncState === 'FAILED'
+                              ? styles.syncBadgeDanger
+                              : styles.syncBadgeWarning,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.syncBadgeText,
+                              syncState === 'SYNCED'
+                                ? styles.syncBadgeTextSuccess
+                                : syncState === 'FAILED'
+                                ? styles.syncBadgeTextDanger
+                                : styles.syncBadgeTextWarning,
+                            ]}
+                          >
+                            {syncState}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </View>
+
+            {/* Recent Scans Section */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Scans</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ScanTab')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewAllText}>New Scan →</Text>
+                </TouchableOpacity>
+              </View>
+
+              {recentScans.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyEmoji}>📷</Text>
+                  <Text style={styles.emptyTitle}>No scans recorded yet</Text>
+                </View>
+              ) : (
+                recentScans.map((scan) => (
+                  <View key={scan.id} style={styles.recordItem}>
+                    <View style={styles.recordLeft}>
+                      <Text style={styles.recordName}>
+                        {scan.contact?.fullName || 'Processed Visiting Card'}
+                      </Text>
+                      {scan.contact?.company?.name ? (
+                        <Text style={styles.recordCompany}>{scan.contact.company.name}</Text>
+                      ) : null}
+                      <Text style={styles.recordDate}>
+                        {scan.createdAt ? new Date(scan.createdAt).toLocaleString() : '—'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.recordRight}>
+                      <View
+                        style={[
+                          styles.syncBadge,
+                          scan.status === 'SUCCESS'
+                            ? styles.syncBadgeSuccess
+                            : styles.syncBadgeDanger,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.syncBadgeText,
+                            scan.status === 'SUCCESS'
+                              ? styles.syncBadgeTextSuccess
+                              : styles.syncBadgeTextDanger,
+                          ]}
+                        >
+                          {scan.status}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </>
         )}
-      </TouchableOpacity>
-
-      {/* Recent Contacts */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Recent Scanned Contacts</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('ContactsTab')}>
-          <Text style={styles.viewAllText}>View All ➔</Text>
-        </TouchableOpacity>
-      </View>
-
-      {recentContacts.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No contacts scanned yet.</Text>
-          <Text style={styles.emptySub}>Tap "Scan Business Card" above to start.</Text>
-        </View>
-      ) : (
-        recentContacts.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            style={styles.contactItem}
-            onPress={() => navigation.navigate('ContactsTab')}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{(c.fullName || 'C').charAt(0).toUpperCase()}</Text>
-            </View>
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactName}>{c.fullName || 'Unnamed'}</Text>
-              <Text style={styles.contactCompany}>{c.company || c.companyRel?.name || 'No company'}</Text>
-            </View>
-            <Text style={styles.contactPhone}>{c.phone || ''}</Text>
-          </TouchableOpacity>
-        ))
-      )}
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', padding: 18 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
-  loadingText: { marginTop: 12, color: '#64748B', fontSize: 14 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: colors.bgMain,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 36,
+  },
+  headerBlock: {
     marginBottom: 20,
-    marginTop: 10,
+    gap: 14,
   },
-  greeting: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  adminName: { fontSize: 20, color: '#0F172A', fontWeight: '700' },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+  titleArea: {
+    gap: 4,
   },
-  logoutText: { fontSize: 12, color: '#EF4444', fontWeight: '600' },
-  heroAction: {
-    backgroundColor: '#2563EB',
-    borderRadius: 16,
-    padding: 18,
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  actionButtonsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-    marginBottom: 24,
-  },
-  heroIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  heroIcon: { fontSize: 24 },
-  heroTextContainer: { flex: 1 },
-  heroTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
-  heroSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
-  heroArrow: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1E293B', marginBottom: 12 },
-  grid: {
-    flexDirection: 'row',
+    gap: 10,
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  },
+  btnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  btnSecondaryIcon: {
+    fontSize: 14,
+  },
+  btnSecondaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  btnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    ...shadows.sm,
+  },
+  btnPrimaryIcon: {
+    fontSize: 14,
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textWhite,
+  },
+  loadingBox: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  statsContainer: {
     marginBottom: 16,
   },
-  statCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+  actionBanner: {
+    backgroundColor: colors.bgDarkElevated,
+    borderRadius: radii.lg,
+    padding: 20,
+    marginBottom: 20,
+    gap: 16,
+    ...shadows.md,
+  },
+  actionBannerContent: {
+    gap: 8,
+  },
+  bannerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bannerEmoji: {
+    fontSize: 18,
+  },
+  bannerHeading: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textWhite,
+  },
+  bannerDesc: {
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 17,
+  },
+  bannerStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  statPillGreen: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4ADE80',
+    backgroundColor: 'rgba(74, 222, 128, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+  statPillYellow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FBBF24',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+  statPillRed: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F87171',
+    backgroundColor: 'rgba(248, 113, 113, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+  bannerBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  bannerBtnText: {
+    color: colors.textWhite,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sectionCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
+    marginBottom: 18,
+    ...shadows.sm,
   },
-  statNumber: { fontSize: 22, fontWeight: '800', color: '#0F172A' },
-  statLabel: { fontSize: 12, color: '#64748B', marginTop: 4, fontWeight: '500' },
-  syncBtn: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  syncBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  sectionHeaderRow: {
+  sectionHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  viewAllText: { fontSize: 13, color: '#2563EB', fontWeight: '600' },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 24,
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
-  emptyText: { fontSize: 14, fontWeight: '600', color: '#334155' },
-  emptySub: { fontSize: 12, color: '#94A3B8', marginTop: 4 },
-  contactItem: {
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  emptyBox: {
+    padding: 28,
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptyEmoji: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  recordItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.bgSubtle,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+  recordLeft: {
+    flex: 1,
+    paddingRight: 10,
+    gap: 3,
   },
-  avatarText: { fontSize: 16, fontWeight: '700', color: '#4F46E5' },
-  contactInfo: { flex: 1 },
-  contactName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  contactCompany: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  contactPhone: { fontSize: 12, color: '#2563EB', fontWeight: '500' },
+  recordName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  recordDesignation: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  recordCompany: {
+    fontSize: 12,
+    color: colors.secondary,
+  },
+  contactDetailsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  recordPhone: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  recordEmail: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  recordDate: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  recordRight: {
+    alignItems: 'flex-end',
+  },
+  syncBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.full,
+    borderWidth: 1,
+  },
+  syncBadgeSuccess: {
+    backgroundColor: colors.successLight,
+    borderColor: colors.successBorder,
+  },
+  syncBadgeWarning: {
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warningBorder,
+  },
+  syncBadgeDanger: {
+    backgroundColor: colors.dangerLight,
+    borderColor: colors.dangerBorder,
+  },
+  syncBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  syncBadgeTextSuccess: {
+    color: colors.successDark,
+  },
+  syncBadgeTextWarning: {
+    color: colors.warningDark,
+  },
+  syncBadgeTextDanger: {
+    color: colors.dangerDark,
+  },
 });

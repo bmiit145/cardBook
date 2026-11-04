@@ -1,353 +1,916 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   TextInput,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
   Image,
-  Switch,
   ActivityIndicator,
   Alert,
   Platform,
 } from 'react-native';
-import { createContact, saveToPhoneAddressBook } from '../services/contactService';
+import CardPreviewModal from '../components/CardPreviewModal';
+import DuplicateWarningModal from '../components/DuplicateWarningModal';
+import { contactService } from '../services/contactService';
+import { colors, radii, shadows } from '../theme/theme';
 
 export default function ReviewScreen({ route, navigation }) {
-  const { contact: initialContact, frontImageUri, frontOcr } = route.params || {};
+  const { extractedData, frontPreview, backPreview } = route.params || {};
 
-  const [form, setForm] = useState({
-    fullName: initialContact?.fullName || '',
-    company: initialContact?.company || '',
-    designation: initialContact?.designation || '',
-    phone: initialContact?.phone || '',
-    alternatePhone: initialContact?.alternatePhone || '',
-    email: initialContact?.email || '',
-    website: initialContact?.website || '',
-    address: initialContact?.address || '',
-    city: initialContact?.city || '',
-    state: initialContact?.state || '',
-    country: initialContact?.country || '',
-    notes: initialContact?.notes || '',
+  const [formData, setFormData] = useState({
+    fullName: '',
+    company: '',
+    designation: '',
+    phone: '',
+    alternatePhone: '',
+    email: '',
+    website: '',
+    address: '',
+    city: '',
+    state: '',
+    country: 'India',
+    notes: '',
+    phones: [],
+    emails: [],
+    websites: [],
+    addresses: [],
+    people: [],
   });
 
-  const [saveToDevice, setSaveToDevice] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showRawOcr, setShowRawOcr] = useState(false);
+  const [activeCardSide, setActiveCardSide] = useState('front');
+  const [showRawText, setShowRawText] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
-  const confidence = initialContact?.confidence || 80;
-  const needsReview = initialContact?.needsReview || false;
-  const reviewReasons = initialContact?.reviewReasons || [];
+  // Duplicate warning modal state
+  const [duplicateMatches, setDuplicateMatches] = useState([]);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
 
-  const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  // Native phone contacts save status
+  const [isSavingToPhone, setIsSavingToPhone] = useState(false);
+  const [phoneSaveResult, setPhoneSaveResult] = useState('');
 
-  const handleSaveContact = async () => {
-    if (!form.fullName.trim() && !form.company.trim()) {
-      Alert.alert('Validation Error', 'Please enter at least a Person Name or a Company Name.');
+  useEffect(() => {
+    if (!extractedData) {
+      navigation.navigate('ScanTab');
       return;
     }
 
-    try {
-      setSaving(true);
+    if (extractedData.extractedFields) {
+      setFormData((prev) => ({
+        ...prev,
+        ...extractedData.extractedFields,
+      }));
+    }
+  }, [extractedData, navigation]);
 
-      // 1. Save to central PostgreSQL database via shared API
-      const saved = await createContact({
-        ...form,
-        frontImageUrl: frontImageUri,
-        rawOcrText: frontOcr?.rawText || '',
-        ocrConfidence: confidence,
+  const rawOcrText = extractedData?.rawText || '';
+  const confidence =
+    extractedData?.confidence || extractedData?.extractedFields?.confidence || 0;
+  const needsReview = Boolean(
+    extractedData?.needsReview ||
+      extractedData?.extractedFields?.needsReview ||
+      confidence < 60
+  );
+  const reviewReasons =
+    extractedData?.reviewReasons ||
+    extractedData?.extractedFields?.reviewReasons ||
+    [];
+
+  const currentPreview = activeCardSide === 'front' ? frontPreview : backPreview;
+
+  const validate = () => {
+    const errs = {};
+    if (!formData.fullName || !formData.fullName.trim()) {
+      errs.fullName = 'Full Name is required';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSaveAttempt = async () => {
+    if (!validate()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      // Check duplicates first
+      const dupRes = await contactService.checkDuplicate({
+        fullName: formData.fullName,
+        company: formData.company,
+        phone: formData.phone,
+        email: formData.email,
       });
 
-      // 2. Save directly to Android/iOS device phone contacts if enabled
-      let deviceMsg = '';
-      if (saveToDevice) {
-        const deviceRes = await saveToPhoneAddressBook(form);
-        deviceMsg = deviceRes.success
-          ? '\n• Saved to device address book'
-          : `\n• Device contacts: ${deviceRes.message}`;
+      if (dupRes?.data?.isDuplicate && dupRes.data.duplicates?.length > 0) {
+        setDuplicateMatches(dupRes.data.duplicates);
+        setIsDuplicateModalOpen(true);
+        setIsSubmitting(false);
+        return;
       }
 
-      setSaving(false);
+      await commitContactSave();
+    } catch (err) {
+      console.error('Error during pre-save duplicate check:', err);
+      // Fallback save anyway
+      await commitContactSave();
+    }
+  };
+
+  const commitContactSave = async () => {
+    try {
+      setIsSubmitting(true);
+      const uploadedImages = extractedData?.uploadedImages || [];
+      const frontImg = uploadedImages.find((img) => img.side === 'FRONT');
+      const backImg = uploadedImages.find((img) => img.side === 'BACK');
+
+      const payload = {
+        ...formData,
+        frontImagePublicId: frontImg?.publicId || null,
+        frontImageSecureUrl: frontImg?.secureUrl || frontPreview || null,
+        backImagePublicId: backImg?.publicId || null,
+        backImageSecureUrl: backImg?.secureUrl || backPreview || null,
+        originalOcrText: rawOcrText,
+      };
+
+      await contactService.createContact(payload);
+      setIsDuplicateModalOpen(false);
+
       Alert.alert(
-        'Contact Saved!',
-        `Contact "${form.fullName || form.company}" successfully saved to shared database and queued for Google Sheets sync.${deviceMsg}`,
+        'Success',
+        'Contact saved and enqueued for Google Sheets synchronization!',
         [
-          { text: 'View Contacts', onPress: () => navigation.navigate('ContactsTab') },
-          { text: 'Dashboard', onPress: () => navigation.navigate('DashboardTab') },
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('ContactsTab'),
+          },
         ]
       );
     } catch (err) {
-      setSaving(false);
-      const msg = err.response?.data?.message || err.message || 'Failed to save contact.';
+      console.error('Save contact error:', err);
+      const msg =
+        err.response?.data?.message || err.message || 'Error saving contact';
       Alert.alert('Save Failed', msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveToDeviceContacts = async () => {
+    setIsSavingToPhone(true);
+    setPhoneSaveResult('');
+    const res = await contactService.saveToPhoneAddressBook(formData);
+    setIsSavingToPhone(false);
+    if (res.success) {
+      setPhoneSaveResult('✓ Saved to phone contacts!');
+    } else {
+      setPhoneSaveResult(res.message);
     }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Top Banner with Image Preview */}
-      <View style={styles.topCard}>
-        {frontImageUri ? (
-          <Image source={{ uri: frontImageUri }} style={styles.cardThumb} resizeMode="contain" />
-        ) : null}
-        <View style={styles.confidenceRow}>
-          <Text style={styles.confidenceLabel}>OCR Confidence: {confidence}%</Text>
-          <View style={[styles.badge, needsReview ? styles.badgeWarning : styles.badgeSuccess]}>
-            <Text style={styles.badgeText}>{needsReview ? '⚠️ Needs Review' : '✓ High Confidence'}</Text>
-          </View>
-        </View>
+      {/* Top Navigation */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.navigate('ScanTab')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backBtnText}>← Back to Scanner</Text>
+        </TouchableOpacity>
+      </View>
 
-        {needsReview && reviewReasons.length > 0 && (
-          <View style={styles.reviewAlert}>
-            <Text style={styles.reviewAlertTitle}>Review Flags:</Text>
-            {reviewReasons.map((r, i) => (
-              <Text key={i} style={styles.reviewAlertText}>• {r}</Text>
+      {/* Screen Title */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.title}>Review & Confirm Extracted Contact</Text>
+        <Text style={styles.subtitle}>
+          Verify and edit the fields recognized from the card. The original card photo is
+          displayed below.
+        </Text>
+      </View>
+
+      {/* Manual Review Alert Banner */}
+      {needsReview ? (
+        <View style={styles.reviewBanner}>
+          <Text style={styles.reviewBannerEmoji}>⚠️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.reviewBannerHeading}>
+              Manual Review Recommended{' '}
+              {confidence > 0 ? `(OCR Confidence: ${confidence}%)` : ''}
+            </Text>
+            <Text style={styles.reviewBannerSub}>
+              Please verify extracted fields against the raw OCR text and photo:
+            </Text>
+            {reviewReasons.map((reason, idx) => (
+              <Text key={idx} style={styles.reviewReasonBullet}>
+                • {reason}
+              </Text>
             ))}
           </View>
-        )}
-      </View>
-
-      {/* Structured Fields */}
-      <Text style={styles.sectionHeader}>Personal & Company Details</Text>
-
-      <Text style={styles.inputLabel}>Full Name *</Text>
-      <TextInput
-        style={styles.input}
-        value={form.fullName}
-        onChangeText={(v) => updateField('fullName', v)}
-        placeholder="e.g. Parth Patel"
-      />
-
-      <Text style={styles.inputLabel}>Company Name *</Text>
-      <TextInput
-        style={styles.input}
-        value={form.company}
-        onChangeText={(v) => updateField('company', v)}
-        placeholder="e.g. Dreamgems"
-      />
-
-      <Text style={styles.inputLabel}>Designation / Job Title</Text>
-      <TextInput
-        style={styles.input}
-        value={form.designation}
-        onChangeText={(v) => updateField('designation', v)}
-        placeholder="e.g. Director, Founder"
-      />
-
-      <Text style={styles.sectionHeader}>Communication Details</Text>
-
-      <Text style={styles.inputLabel}>Primary Phone / Mobile</Text>
-      <TextInput
-        style={styles.input}
-        value={form.phone}
-        onChangeText={(v) => updateField('phone', v)}
-        placeholder="+1 647 366 3330"
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.inputLabel}>Alternate Phone / Landline</Text>
-      <TextInput
-        style={styles.input}
-        value={form.alternatePhone}
-        onChangeText={(v) => updateField('alternatePhone', v)}
-        placeholder="+1 705 978 4342"
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.inputLabel}>Email Address</Text>
-      <TextInput
-        style={styles.input}
-        value={form.email}
-        onChangeText={(v) => updateField('email', v)}
-        placeholder="info@dreamgems.ca"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <Text style={styles.inputLabel}>Website URL</Text>
-      <TextInput
-        style={styles.input}
-        value={form.website}
-        onChangeText={(v) => updateField('website', v)}
-        placeholder="https://dreamgems.ca"
-        autoCapitalize="none"
-      />
-
-      <Text style={styles.sectionHeader}>Address & Location</Text>
-
-      <Text style={styles.inputLabel}>Street Address / Suite</Text>
-      <TextInput
-        style={styles.input}
-        value={form.address}
-        onChangeText={(v) => updateField('address', v)}
-        placeholder="206, 107 Church Street"
-      />
-
-      <View style={styles.row}>
-        <View style={styles.halfCol}>
-          <Text style={styles.inputLabel}>City</Text>
-          <TextInput
-            style={styles.input}
-            value={form.city}
-            onChangeText={(v) => updateField('city', v)}
-            placeholder="Toronto"
-          />
         </View>
-        <View style={styles.halfCol}>
-          <Text style={styles.inputLabel}>State / Province</Text>
-          <TextInput
-            style={styles.input}
-            value={form.state}
-            onChangeText={(v) => updateField('state', v)}
-            placeholder="Ontario"
-          />
+      ) : null}
+
+      {/* Card Photo Preview Section */}
+      <View style={styles.previewCard}>
+        <View style={styles.previewHeaderRow}>
+          <Text style={styles.previewHeading}>Original Business Card Photo</Text>
+          {backPreview ? (
+            <View style={styles.sideButtonsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.sideToggleBtn,
+                  activeCardSide === 'front' && styles.sideToggleBtnActive,
+                ]}
+                onPress={() => setActiveCardSide('front')}
+              >
+                <Text
+                  style={[
+                    styles.sideToggleText,
+                    activeCardSide === 'front' && styles.sideToggleTextActive,
+                  ]}
+                >
+                  Front
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sideToggleBtn,
+                  activeCardSide === 'back' && styles.sideToggleBtnActive,
+                ]}
+                onPress={() => setActiveCardSide('back')}
+              >
+                <Text
+                  style={[
+                    styles.sideToggleText,
+                    activeCardSide === 'back' && styles.sideToggleTextActive,
+                  ]}
+                >
+                  Back
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.imageBox}>
+          {currentPreview ? (
+            <>
+              <Image
+                source={{ uri: currentPreview }}
+                style={styles.cardImage}
+                resizeMode="contain"
+              />
+              <TouchableOpacity
+                style={styles.fullViewBtn}
+                onPress={() => setIsZoomOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.fullViewBtnText}>🔍 Full View</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={styles.noImageText}>No image available for this side</Text>
+          )}
         </View>
       </View>
 
-      <Text style={styles.inputLabel}>Country</Text>
-      <TextInput
-        style={styles.input}
-        value={form.country}
-        onChangeText={(v) => updateField('country', v)}
-        placeholder="Canada"
-      />
+      {/* Raw OCR Text Collapsible Box */}
+      <View style={styles.rawOcrCard}>
+        <TouchableOpacity
+          style={styles.rawOcrHeader}
+          onPress={() => setShowRawText(!showRawText)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.rawOcrLeft}>
+            <Text style={styles.rawOcrEmoji}>📄</Text>
+            <Text style={styles.rawOcrTitle}>
+              Raw OCR Text Recognized ({rawOcrText.length} characters)
+            </Text>
+          </View>
+          <Text style={styles.rawOcrArrow}>{showRawText ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.inputLabel}>Services & Notes</Text>
-      <TextInput
-        style={[styles.input, styles.multilineInput]}
-        value={form.notes}
-        onChangeText={(v) => updateField('notes', v)}
-        placeholder="Services, slogans, or notes"
-        multiline
-        numberOfLines={3}
-      />
-
-      {/* Native Device Contacts Switch */}
-      <View style={styles.switchBox}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.switchTitle}>Save to Device Contacts</Text>
-          <Text style={styles.switchSub}>Sync directly to your Android/phone address book</Text>
-        </View>
-        <Switch
-          value={saveToDevice}
-          onValueChange={setSaveToDevice}
-          trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-          thumbColor={saveToDevice ? '#2563EB' : '#F1F5F9'}
-        />
+        {showRawText ? (
+          <ScrollView style={styles.rawOcrTextBox} nestedScrollEnabled>
+            <Text style={styles.rawOcrContent}>
+              {rawOcrText || 'No raw text recognized.'}
+            </Text>
+          </ScrollView>
+        ) : null}
       </View>
 
-      {/* Raw OCR Toggle */}
-      <TouchableOpacity style={styles.rawOcrToggle} onPress={() => setShowRawOcr(!showRawOcr)}>
-        <Text style={styles.rawOcrToggleText}>
-          {showRawOcr ? '▲ Hide Raw OCR Text' : '▼ View Raw OCR Text'}
-        </Text>
-      </TouchableOpacity>
+      {/* Editable Contact Form */}
+      <View style={styles.formCard}>
+        {/* Section 1: Identity */}
+        <View style={styles.formSection}>
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionEmoji}>👤</Text>
+            <Text style={styles.sectionHeading}>Personal & Company Information</Text>
+          </View>
 
-      {showRawOcr && (
-        <View style={styles.rawOcrBox}>
-          <Text style={styles.rawOcrContent}>
-            {frontOcr?.rawText || initialContact?.rawOcrText || 'No raw text available.'}
-          </Text>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>
+              Full Name <Text style={{ color: colors.danger }}>*</Text>
+            </Text>
+            <TextInput
+              style={[styles.formInput, errors.fullName && styles.formInputError]}
+              value={formData.fullName}
+              onChangeText={(val) => setFormData({ ...formData, fullName: val })}
+              placeholder="e.g. Harmish Patel"
+              placeholderTextColor={colors.textMuted}
+            />
+            {errors.fullName ? (
+              <Text style={styles.formErrorText}>{errors.fullName}</Text>
+            ) : null}
+
+            {formData.people && formData.people.length > 1 ? (
+              <View style={styles.suggestionsBox}>
+                <Text style={styles.suggestionsTitle}>Detected Names:</Text>
+                <View style={styles.suggestionPillsRow}>
+                  {formData.people.map((nm, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionPill}
+                      onPress={() => setFormData({ ...formData, fullName: nm })}
+                    >
+                      <Text style={styles.suggestionPillText}>{nm}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Company Name</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.company}
+              onChangeText={(val) => setFormData({ ...formData, company: val })}
+              placeholder="e.g. Spirit Infotech Pvt Ltd"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Designation / Title</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.designation}
+              onChangeText={(val) => setFormData({ ...formData, designation: val })}
+              placeholder="e.g. Chief Technology Officer"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
         </View>
-      )}
 
-      {/* Save Button */}
-      <TouchableOpacity
-        style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-        onPress={handleSaveContact}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.saveBtnText}>💾 Confirm & Save Contact</Text>
-        )}
-      </TouchableOpacity>
+        {/* Section 2: Communication Details */}
+        <View style={styles.formSection}>
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionEmoji}>📞</Text>
+            <Text style={styles.sectionHeading}>Communication Details</Text>
+          </View>
 
-      <View style={{ height: 40 }} />
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Mobile Number</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.phone}
+              onChangeText={(val) => setFormData({ ...formData, phone: val })}
+              placeholder="e.g. +91 98765 43210"
+              keyboardType="phone-pad"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Alternate Phone / Landline</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.alternatePhone}
+              onChangeText={(val) => setFormData({ ...formData, alternatePhone: val })}
+              placeholder="e.g. +91 261 2456789"
+              keyboardType="phone-pad"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          {formData.phones && formData.phones.length > 2 ? (
+            <View style={styles.suggestionsBox}>
+              <Text style={styles.suggestionsTitle}>All Detected Phone Numbers:</Text>
+              <View style={styles.suggestionPillsRow}>
+                {formData.phones.map((p, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.suggestionPill}
+                    onPress={() => setFormData({ ...formData, alternatePhone: p })}
+                  >
+                    <Text style={styles.suggestionPillText}>{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Email Address</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.email}
+              onChangeText={(val) => setFormData({ ...formData, email: val })}
+              placeholder="e.g. harmish@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          {formData.emails && formData.emails.length > 1 ? (
+            <View style={styles.suggestionsBox}>
+              <Text style={styles.suggestionsTitle}>All Detected Emails:</Text>
+              <View style={styles.suggestionPillsRow}>
+                {formData.emails.map((em, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.suggestionPill}
+                    onPress={() => setFormData({ ...formData, email: em })}
+                  >
+                    <Text style={styles.suggestionPillText}>{em}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Website</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.website}
+              onChangeText={(val) => setFormData({ ...formData, website: val })}
+              placeholder="e.g. https://www.example.com"
+              autoCapitalize="none"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+        </View>
+
+        {/* Section 3: Address & Location */}
+        <View style={styles.formSection}>
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionEmoji}>📍</Text>
+            <Text style={styles.sectionHeading}>Address & Location</Text>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Street Address / Suite</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.address}
+              onChangeText={(val) => setFormData({ ...formData, address: val })}
+              placeholder="e.g. 402, Titanium City Center, Prahlad Nagar"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.rowTwoCols}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.formLabel}>City</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.city}
+                onChangeText={(val) => setFormData({ ...formData, city: val })}
+                placeholder="Ahmedabad"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.formLabel}>State</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.state}
+                onChangeText={(val) => setFormData({ ...formData, state: val })}
+                placeholder="Gujarat"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Country</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.country}
+              onChangeText={(val) => setFormData({ ...formData, country: val })}
+              placeholder="India"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+        </View>
+
+        {/* Section 4: Notes */}
+        <View style={styles.formSection}>
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionEmoji}>📝</Text>
+            <Text style={styles.sectionHeading}>Notes & Social Media</Text>
+          </View>
+
+          <View style={styles.formGroup}>
+            <TextInput
+              style={[styles.formInput, styles.textArea]}
+              value={formData.notes}
+              onChangeText={(val) => setFormData({ ...formData, notes: val })}
+              placeholder="e.g. Met at Tech Expo 2026. LinkedIn: linkedin.com/in/harmish"
+              multiline
+              numberOfLines={3}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+        </View>
+
+        {/* Mobile Extra: Save to Phone Contacts */}
+        <View style={styles.phoneSaveBox}>
+          <TouchableOpacity
+            style={styles.phoneSaveBtn}
+            onPress={handleSaveToDeviceContacts}
+            disabled={isSavingToPhone}
+            activeOpacity={0.8}
+          >
+            {isSavingToPhone ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Text style={styles.phoneSaveBtnText}>📱 Save to Phone Address Book</Text>
+            )}
+          </TouchableOpacity>
+          {phoneSaveResult ? (
+            <Text style={styles.phoneSaveResultText}>{phoneSaveResult}</Text>
+          ) : null}
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.saveBtn, isSubmitting && styles.saveBtnDisabled]}
+          onPress={handleSaveAttempt}
+          disabled={isSubmitting}
+          activeOpacity={0.85}
+        >
+          {isSubmitting ? (
+            <View style={styles.btnRow}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>Saving Contact...</Text>
+            </View>
+          ) : (
+            <View style={styles.btnRow}>
+              <Text style={styles.saveBtnText}>✓ Save Contact & Sync</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Zoom Modal */}
+      <CardPreviewModal
+        visible={isZoomOpen}
+        imageUrl={currentPreview}
+        title={`${activeCardSide === 'front' ? 'Front' : 'Back'} Card Full View`}
+        onClose={() => setIsZoomOpen(false)}
+      />
+
+      {/* Duplicate Warning Dialog */}
+      <DuplicateWarningModal
+        isOpen={isDuplicateModalOpen}
+        duplicates={duplicateMatches}
+        onProceed={commitContactSave}
+        onCancel={() => setIsDuplicateModalOpen(false)}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 18 },
-  topCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.bgMain,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  topBar: {
+    flexDirection: 'row',
+  },
+  backBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+  },
+  backBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  titleBlock: {
+    gap: 4,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+  },
+  reviewBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: colors.warningLight,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    borderRadius: radii.md,
     padding: 14,
-    marginBottom: 20,
+  },
+  reviewBannerEmoji: {
+    fontSize: 18,
+  },
+  reviewBannerHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.warningDark,
+  },
+  reviewBannerSub: {
+    fontSize: 11,
+    color: colors.warningDark,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  reviewReasonBullet: {
+    fontSize: 11,
+    color: colors.warningDark,
+  },
+  previewCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
+    padding: 16,
+    gap: 12,
+    ...shadows.sm,
   },
-  cardThumb: { width: '100%', height: 160, borderRadius: 10, backgroundColor: '#000', marginBottom: 12 },
-  confidenceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  confidenceLabel: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  badgeSuccess: { backgroundColor: '#DCFCE7' },
-  badgeWarning: { backgroundColor: '#FEF3C7' },
-  badgeText: { fontSize: 12, fontWeight: '700', color: '#166534' },
-  reviewAlert: {
-    marginTop: 10,
-    backgroundColor: '#FFFBEB',
-    padding: 10,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-  },
-  reviewAlertTitle: { fontSize: 12, fontWeight: '700', color: '#B45309', marginBottom: 2 },
-  reviewAlertText: { fontSize: 11, color: '#92400E' },
-  sectionHeader: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginTop: 14, marginBottom: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 6 },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0F172A',
-    marginBottom: 14,
-  },
-  multilineInput: { minHeight: 70, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  halfCol: { width: '48%' },
-  switchBox: {
+  previewHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
+    justifyContent: 'space-between',
+  },
+  previewHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  sideButtonsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  sideToggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderColor: colors.border,
+    backgroundColor: colors.bgCard,
   },
-  switchTitle: { fontSize: 14, fontWeight: '700', color: '#1E293B' },
-  switchSub: { fontSize: 11, color: '#64748B', marginTop: 2 },
-  rawOcrToggle: { alignItems: 'center', marginBottom: 12 },
-  rawOcrToggleText: { fontSize: 13, color: '#2563EB', fontWeight: '600' },
-  rawOcrBox: {
+  sideToggleBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  sideToggleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  sideToggleTextActive: {
+    color: '#FFFFFF',
+  },
+  imageBox: {
     backgroundColor: '#0F172A',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
-  },
-  rawOcrContent: { color: '#E2E8F0', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
-  saveBtn: {
-    backgroundColor: '#2563EB',
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    height: 200,
     alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: 'center',
+    position: 'relative',
   },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fullViewBtn: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.sm,
+  },
+  fullViewBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  noImageText: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  rawOcrCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    gap: 10,
+    ...shadows.sm,
+  },
+  rawOcrHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rawOcrLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rawOcrEmoji: {
+    fontSize: 16,
+  },
+  rawOcrTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  rawOcrArrow: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  rawOcrTextBox: {
+    maxHeight: 140,
+    backgroundColor: colors.bgSubtle,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 10,
+  },
+  rawOcrContent: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    lineHeight: 16,
+  },
+  formCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 18,
+    gap: 20,
+    ...shadows.sm,
+  },
+  formSection: {
+    gap: 12,
+  },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.bgSubtle,
+    paddingBottom: 8,
+  },
+  sectionEmoji: {
+    fontSize: 14,
+  },
+  sectionHeading: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  formGroup: {
+    gap: 5,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: colors.textPrimary,
+    backgroundColor: '#FFFFFF',
+  },
+  formInputError: {
+    borderColor: colors.danger,
+  },
+  formErrorText: {
+    fontSize: 11,
+    color: colors.danger,
+  },
+  textArea: {
+    height: 70,
+    textAlignVertical: 'top',
+  },
+  rowTwoCols: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  suggestionsBox: {
+    gap: 4,
+    marginTop: 4,
+  },
+  suggestionsTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  suggestionPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  suggestionPill: {
+    backgroundColor: colors.bgSubtle,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  suggestionPillText: {
+    fontSize: 11,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  phoneSaveBox: {
+    gap: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.bgSubtle,
+  },
+  phoneSaveBtn: {
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primaryLight,
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phoneSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  phoneSaveResultText: {
+    fontSize: 12,
+    color: colors.successDark,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  saveBtnDisabled: {
+    opacity: 0.65,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  saveBtnText: {
+    color: colors.textWhite,
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });
-

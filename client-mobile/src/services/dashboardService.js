@@ -1,16 +1,16 @@
 import api from './api';
 
-export async function getDashboardMetrics() {
-  const response = await api.get('/dashboard/metrics');
-  return response.data?.data || {};
-}
+export const dashboardService = {
+  async getDashboardStats() {
+    const response = await api.get('/dashboard/stats');
+    return response.data;
+  },
 
-export async function getGoogleSheetsStatus() {
-  const response = await api.get('/integrations/sheets/status');
-  return response.data?.data || {};
-}
+  async getMetrics() {
+    const response = await api.get('/dashboard/stats');
+    return response.data?.data || response.data || {};
+  },
+};
 
-export async function triggerGoogleSheetsSync() {
-  const response = await api.post('/integrations/sheets/sync');
-  return response.data?.data || {};
-}
+export const { getDashboardStats, getMetrics } = dashboardService;
+export default dashboardService;
