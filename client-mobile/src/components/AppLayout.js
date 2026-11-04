@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { View, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
+import OfflineBanner from './OfflineBanner';
 import { colors } from '../theme/theme';
 
 export default function AppLayout({
@@ -22,6 +23,7 @@ export default function AppLayout({
         title={title}
         onMenuPress={() => setIsSidebarOpen(true)}
       />
+      <OfflineBanner />
       <AppSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -43,4 +45,3 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgMain,
   },
 });
-

@@ -14,10 +14,13 @@ import {
 import CardPreviewModal from '../components/CardPreviewModal';
 import DuplicateWarningModal from '../components/DuplicateWarningModal';
 import { contactService } from '../services/contactService';
+import { offlineQueueService } from '../services/offlineQueueService';
+import { useNetwork } from '../context/NetworkContext';
 import { colors, radii, shadows } from '../theme/theme';
 
 export default function ReviewScreen({ route, navigation }) {
   const { extractedData, frontPreview, backPreview } = route.params || {};
+  const { isOnline } = useNetwork();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -136,6 +139,23 @@ export default function ReviewScreen({ route, navigation }) {
         originalOcrText: rawOcrText,
       };
 
+      if (!isOnline) {
+        // Enqueue directly to offline queue & phone contacts
+        await offlineQueueService.enqueueContact({
+          formData,
+          frontPreview,
+          backPreview,
+          originalOcrText: rawOcrText,
+        });
+        setIsDuplicateModalOpen(false);
+        Alert.alert(
+          'Saved to Offline Queue ⚡',
+          'Contact saved locally to your device and added to phone contacts! It will auto-sync to Google Sheets and the database when internet is reconnected.',
+          [{ text: 'OK', onPress: () => navigation.navigate('ContactsTab') }]
+        );
+        return;
+      }
+
       await contactService.createContact(payload);
       setIsDuplicateModalOpen(false);
 
@@ -150,10 +170,23 @@ export default function ReviewScreen({ route, navigation }) {
         ]
       );
     } catch (err) {
-      console.error('Save contact error:', err);
-      const msg =
-        err.response?.data?.message || err.message || 'Error saving contact';
-      Alert.alert('Save Failed', msg);
+      console.warn('Network save failed, saving to offline queue:', err.message);
+      try {
+        await offlineQueueService.enqueueContact({
+          formData,
+          frontPreview,
+          backPreview,
+          originalOcrText: rawOcrText,
+        });
+        setIsDuplicateModalOpen(false);
+        Alert.alert(
+          'Saved to Offline Queue ⚡',
+          'Server was unreachable. Contact saved locally on your device and enqueued for automatic sync when reconnected.',
+          [{ text: 'OK', onPress: () => navigation.navigate('ContactsTab') }]
+        );
+      } catch (queueErr) {
+        Alert.alert('Save Failed', queueErr.message);
+      }
     } finally {
       setIsSubmitting(false);
     }

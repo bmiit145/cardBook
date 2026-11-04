@@ -14,9 +14,11 @@ import * as ImagePicker from 'expo-image-picker';
 import AppLayout from '../components/AppLayout';
 import { scanService } from '../services/scanService';
 import { getBaseApiUrl } from '../services/api';
+import { useNetwork } from '../context/NetworkContext';
 import { colors, radii, shadows } from '../theme/theme';
 
 export default function ScanScreen({ navigation }) {
+  const { isOnline } = useNetwork();
   const [isDoubleSided, setIsDoubleSided] = useState(false);
   const [activeSide, setActiveSide] = useState('front'); // 'front' | 'back'
 
@@ -143,6 +145,22 @@ export default function ScanScreen({ navigation }) {
       return;
     }
 
+    if (!isOnline) {
+      // Offline mode: proceed to ReviewScreen directly with photo
+      navigation.navigate('ReviewScreen', {
+        extractedData: {
+          extractedFields: {},
+          rawText: '(Card photographed in offline mode — will process OCR when reconnected)',
+          confidence: 0,
+          needsReview: true,
+          reviewReasons: ['Photographed in Offline Mode.'],
+        },
+        frontPreview: frontImageUri,
+        backPreview: backImageUri,
+      });
+      return;
+    }
+
     setError('');
     setIsProcessing(true);
 
@@ -167,12 +185,35 @@ export default function ScanScreen({ navigation }) {
         });
       }
     } catch (err) {
-      console.error('Scan processing error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to process card OCR. Ensure backend is running.';
-      setError(msg);
+      console.warn('Scan processing error:', err.message);
+      if (!err.response) {
+        // Network connection error - offer offline review
+        Alert.alert(
+          'Network Unavailable',
+          'Server could not be reached. Review and save card details to your phone offline queue?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Save Offline',
+              onPress: () => {
+                navigation.navigate('ReviewScreen', {
+                  extractedData: {
+                    extractedFields: {},
+                    rawText: '(Captured while offline)',
+                    confidence: 0,
+                    needsReview: true,
+                  },
+                  frontPreview: frontImageUri,
+                  backPreview: backImageUri,
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Failed to process card OCR.';
+        setError(msg);
+      }
     } finally {
       setIsProcessing(false);
     }

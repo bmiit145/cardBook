@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { NetworkProvider } from './src/context/NetworkContext';
 import LoginScreen from './src/screens/LoginScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import ScanScreen from './src/screens/ScanScreen';
@@ -131,9 +132,11 @@ function NavigationRoot() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NavigationRoot />
-      </AuthProvider>
+      <NetworkProvider>
+        <AuthProvider>
+          <NavigationRoot />
+        </AuthProvider>
+      </NetworkProvider>
     </SafeAreaProvider>
   );
 }
