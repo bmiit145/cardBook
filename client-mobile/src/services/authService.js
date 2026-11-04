@@ -1,5 +1,5 @@
 import api, { TOKEN_KEY, ADMIN_KEY } from './api';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../utils/storage';
 
 export async function login(email, password) {
   const response = await api.post('/auth/login', {
@@ -12,10 +12,10 @@ export async function login(email, password) {
   const admin = payload.admin;
 
   if (token) {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await storage.setItem(TOKEN_KEY, token);
   }
   if (admin) {
-    await SecureStore.setItemAsync(ADMIN_KEY, JSON.stringify(admin));
+    await storage.setItem(ADMIN_KEY, JSON.stringify(admin));
   }
 
   return { token, admin };
@@ -25,14 +25,14 @@ export async function logout() {
   try {
     await api.post('/auth/logout');
   } catch (_) {}
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-  await SecureStore.deleteItemAsync(ADMIN_KEY);
+  await storage.deleteItem(TOKEN_KEY);
+  await storage.deleteItem(ADMIN_KEY);
 }
 
 export async function getStoredAuth() {
   try {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
-    const adminJson = await SecureStore.getItemAsync(ADMIN_KEY);
+    const token = await storage.getItem(TOKEN_KEY);
+    const adminJson = await storage.getItem(ADMIN_KEY);
     const admin = adminJson ? JSON.parse(adminJson) : null;
     return { token, admin };
   } catch (error) {
@@ -44,3 +44,4 @@ export async function getCurrentAdmin() {
   const response = await api.get('/auth/me');
   return response.data?.data?.admin;
 }
+

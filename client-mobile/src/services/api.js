@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../utils/storage';
 import { Platform } from 'react-native';
 
 // Default host based on platform:
@@ -19,7 +19,7 @@ let cachedServerUrl = null;
 export async function getBaseApiUrl() {
   if (cachedServerUrl) return cachedServerUrl;
   try {
-    const custom = await SecureStore.getItemAsync(SERVER_URL_KEY);
+    const custom = await storage.getItem(SERVER_URL_KEY);
     if (custom && custom.trim().length > 0) {
       cachedServerUrl = custom.trim();
       return cachedServerUrl;
@@ -32,9 +32,9 @@ export async function getBaseApiUrl() {
 export async function setCustomServerUrl(url) {
   cachedServerUrl = url ? url.trim() : null;
   if (url) {
-    await SecureStore.setItemAsync(SERVER_URL_KEY, url.trim());
+    await storage.setItem(SERVER_URL_KEY, url.trim());
   } else {
-    await SecureStore.deleteItemAsync(SERVER_URL_KEY);
+    await storage.deleteItem(SERVER_URL_KEY);
   }
 }
 
@@ -48,12 +48,12 @@ api.interceptors.request.use(async (config) => {
   config.baseURL = baseURL;
 
   try {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    const token = await storage.getItem(TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (err) {
-    console.warn('Failed to retrieve token from SecureStore:', err);
+    console.warn('Failed to retrieve token from storage:', err);
   }
 
   return config;
@@ -66,8 +66,8 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Token expired or invalid: clean up local secure storage
       try {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        await SecureStore.deleteItemAsync(ADMIN_KEY);
+        await storage.deleteItem(TOKEN_KEY);
+        await storage.deleteItem(ADMIN_KEY);
       } catch (_) {}
     }
     return Promise.reject(error);
@@ -75,3 +75,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
