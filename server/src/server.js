@@ -18,10 +18,12 @@ async function bootstrap() {
     // Start background synchronization worker for Google Sheets
     startSheetsSyncWorker(30000); // Poll every 30 seconds
 
-    const server = app.listen(PORT, () => {
+    const HOST = process.env.HOST || '0.0.0.0';
+    const server = app.listen(PORT, HOST, () => {
       logger.info(`=======================================================`);
-      logger.info(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+      logger.info(`🚀 Server running on http://${HOST}:${PORT} [${process.env.NODE_ENV || 'development'}]`);
       logger.info(`🔗 API Endpoint: http://localhost:${PORT}/api/v1`);
+      logger.info(`📱 Mobile Access: http://<LAN_IP>:${PORT}/api/v1`);
       logger.info(`📱 Client Allowed Origin: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
       logger.info(`=======================================================`);
     });

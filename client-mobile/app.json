@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "CardScan AI",
+    "slug": "cardscan-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#2563EB",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cardscan.ai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CardScan AI needs access to your camera to scan business cards.",
+        "NSPhotoLibraryUsageDescription": "CardScan AI needs access to your photos to import business card images.",
+        "NSContactsUsageDescription": "CardScan AI needs access to contacts to save scanned business cards to your device address book."
+      }
+    },
+    "android": {
+      "package": "com.cardscan.ai",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563EB",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_CONTACTS",
+        "WRITE_CONTACTS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
