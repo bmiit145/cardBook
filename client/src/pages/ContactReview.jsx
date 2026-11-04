@@ -34,15 +34,23 @@ export default function ContactReview() {
     address: '',
     city: '',
     state: '',
-    country: 'India',
+    country: '',
     notes: '',
+    phones: [],
+    emails: [],
+    websites: [],
+    addresses: [],
+    people: [],
   });
 
   const [rawOcrText, setRawOcrText] = useState('');
   const [uploadedImages, setUploadedImages] = useState([]);
-  const [showRawOcr, setShowRawOcr] = useState(false);
+  const [showRawOcr, setShowRawOcr] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [confidence, setConfidence] = useState(0);
+  const [needsReview, setNeedsReview] = useState(false);
+  const [reviewReasons, setReviewReasons] = useState([]);
 
   // Duplicate warning modal state
   const [duplicateMatches, setDuplicateMatches] = useState([]);
@@ -69,6 +77,17 @@ export default function ContactReview() {
     if (extractedData.uploadedImages) {
       setUploadedImages(extractedData.uploadedImages);
     }
+
+    const conf = extractedData.confidence || extractedData.extractedFields?.confidence || 0;
+    const review = Boolean(extractedData.needsReview || extractedData.extractedFields?.needsReview || conf < 60);
+    const reasons = extractedData.reviewReasons || extractedData.extractedFields?.reviewReasons || [];
+
+    setConfidence(conf);
+    setNeedsReview(review);
+    setReviewReasons(reasons);
+
+    // Keep raw OCR text open by default if review is recommended
+    setShowRawOcr(true);
   }, [extractedData, navigate]);
 
   const validate = () => {
@@ -158,13 +177,46 @@ export default function ContactReview() {
         </p>
       </div>
 
+      {/* Manual Review Alert Banner when confidence is low or fields require verification */}
+      {needsReview && (
+        <div
+          style={{
+            marginBottom: '20px',
+            padding: '16px 20px',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '14px',
+          }}
+        >
+          <AlertCircle size={22} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#92400e', margin: '0 0 6px 0' }}>
+              Manual Review Recommended {confidence > 0 ? `(OCR Confidence: ${confidence}%)` : ''}
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: '#b45309', margin: '0 0 6px 0' }}>
+              Please review the extracted fields against the raw OCR text and original photo beside it:
+            </p>
+            {reviewReasons.length > 0 && (
+              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: '#92400e' }}>
+                {reviewReasons.map((reason, idx) => (
+                  <li key={idx} style={{ marginBottom: '2px' }}>{reason}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Split Review Layout */}
       <div className="review-grid">
         {/* Left: Original Card Preview & Raw OCR Text */}
         <div className="card-preview-panel">
           <CardPreview
-            frontUrl={frontPreview || uploadedImages.find((i) => i.side === 'FRONT')?.secureUrl}
-            backUrl={backPreview || uploadedImages.find((i) => i.side === 'BACK')?.secureUrl}
+            frontUrl={uploadedImages.find((i) => i.side === 'FRONT')?.secureUrl || frontPreview}
+            backUrl={uploadedImages.find((i) => i.side === 'BACK')?.secureUrl || backPreview}
             title="Card Image Preview"
           />
 

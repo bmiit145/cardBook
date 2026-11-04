@@ -31,5 +31,15 @@ export const scanService = {
     const response = await api.delete(`/scans/${id}`);
     return response.data;
   },
+
+  async getBenchmarkCards() {
+    const response = await api.get('/scans/benchmark');
+    return response.data;
+  },
+
+  async getExamplesCards() {
+    const response = await api.get('/scans/examples');
+    return response.data;
+  },
 };
 

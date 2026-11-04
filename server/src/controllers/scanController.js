@@ -26,9 +26,10 @@ async function processOcr(req, res) {
     let detectedLanguages = [...(frontOcr.detectedLanguages || [])];
 
     // 2. If Back Image exists, run OCR on it as well
+    let backOcr = null;
     if (backFile) {
       try {
-        const backOcr = await ocrService.extractTextFromImage(backFile.buffer);
+        backOcr = await ocrService.extractTextFromImage(backFile.buffer);
         if (backOcr.rawText) {
           combinedRawText += `\n--- BACK SIDE ---\n${backOcr.rawText}`;
         }
@@ -42,17 +43,21 @@ async function processOcr(req, res) {
       }
     }
 
-    // 3. Extract structured contact fields from the combined raw OCR text
-    const extractedFields = extractionService.extractContactFromText(combinedRawText);
+    // 3. Extract structured contact fields from the combined raw OCR text and spatial layout
+    const extractedFields = extractionService.extractContactFromText(combinedRawText, frontOcr.confidence, {
+      layout: frontOcr.layout,
+      backLayout: backOcr?.layout,
+    });
 
-    // 4. Upload images to Cloudinary (or fallback store)
+    // 4. Save scanned images locally (strictly offline, zero external cloud transmission)
     const uploadedImages = [];
     
-    // Front image upload
+    // Front image upload (use auto-oriented upright buffer if card was rotated)
     const frontUpload = await cloudinaryService.uploadCardImage(
-      frontFile.buffer,
+      frontOcr.orientedBuffer || frontFile.buffer,
       'front',
-      frontFile.originalname
+      frontFile.originalname,
+      true // strictly local storage for offline scan mode
     );
     uploadedImages.push({
       side: 'FRONT',
@@ -65,9 +70,10 @@ async function processOcr(req, res) {
     // Back image upload if present
     if (backFile) {
       const backUpload = await cloudinaryService.uploadCardImage(
-        backFile.buffer,
+        backOcr?.orientedBuffer || backFile.buffer,
         'back',
-        backFile.originalname
+        backFile.originalname,
+        true // strictly local storage for offline scan mode
       );
       uploadedImages.push({
         side: 'BACK',
@@ -78,12 +84,48 @@ async function processOcr(req, res) {
       });
     }
 
-    // Return structured response for admin review
+    // Return structured response for admin review with independent front & back results
     return successResponse(res, {
+      frontOcr: {
+        rawText: frontOcr.rawText,
+        confidence: frontOcr.confidence,
+        qualityScore: frontOcr.qualityScore,
+        bestAngle: frontOcr.bestAngle,
+        psm: frontOcr.psm,
+        blocks: frontOcr.blocks,
+        layout: frontOcr.layout,
+        detectedLanguages: frontOcr.detectedLanguages,
+        preprocessing: frontOcr.preprocessing,
+        engine: frontOcr.engine,
+        engineVersion: frontOcr.engineVersion,
+        imageRef: uploadedImages.find((u) => u.side === 'FRONT') || null,
+      },
+      backOcr: backOcr
+        ? {
+            rawText: backOcr.rawText,
+            confidence: backOcr.confidence,
+            qualityScore: backOcr.qualityScore,
+            bestAngle: backOcr.bestAngle,
+            psm: backOcr.psm,
+            blocks: backOcr.blocks,
+            layout: backOcr.layout,
+            detectedLanguages: backOcr.detectedLanguages,
+            preprocessing: backOcr.preprocessing,
+            engine: backOcr.engine,
+            engineVersion: backOcr.engineVersion,
+            imageRef: uploadedImages.find((u) => u.side === 'BACK') || null,
+          }
+        : null,
       rawText: combinedRawText,
+      confidence: frontOcr.confidence || 0,
+      qualityScore: frontOcr.qualityScore || 0,
+      bestAngle: frontOcr.bestAngle || 0,
+      needsReview: extractedFields.needsReview || false,
+      reviewReasons: extractedFields.reviewReasons || [],
       detectedLanguages,
       extractedFields,
       uploadedImages,
+      layout: frontOcr.layout || null,
       isDoubleSided: Boolean(backFile),
     }, 'Business card scanned and text extracted successfully');
   } catch (error) {
@@ -180,11 +222,45 @@ async function deleteScan(req, res) {
   }
 }
 
+/**
+ * Get 50 Benchmark Cards Dataset
+ */
+function getBenchmarkCards(req, res) {
+  try {
+    const cards = require('../../data/dataset_50_cards/cards.json');
+    return successResponse(res, cards, 'Benchmark dataset retrieved successfully');
+  } catch (error) {
+    logger.error('Error fetching benchmark cards', error);
+    return errorResponse(res, 'Could not load benchmark dataset', 500);
+  }
+}
+
+/**
+ * Get Real Examples Cards Dataset (from examples/ folder)
+ */
+function getExamplesCards(req, res) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const cardsPath = path.resolve(__dirname, '../../data/examples_dataset/cards.json');
+    if (fs.existsSync(cardsPath)) {
+      const cards = JSON.parse(fs.readFileSync(cardsPath, 'utf-8'));
+      return successResponse(res, cards, 'Examples dataset retrieved successfully');
+    }
+    return successResponse(res, [], 'Examples dataset is still processing');
+  } catch (error) {
+    logger.error('Error fetching examples cards', error);
+    return errorResponse(res, 'Could not load examples dataset', 500);
+  }
+}
+
 module.exports = {
   processOcr,
   extractFields,
   getHistory,
   getScanById,
   deleteScan,
+  getBenchmarkCards,
+  getExamplesCards,
 };
 

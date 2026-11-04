@@ -10,6 +10,8 @@ router.use(authenticateAdmin);
 
 router.post('/ocr', scanUpload, scanController.processOcr);
 router.post('/extract', validateBody(extractTextSchema), scanController.extractFields);
+router.get('/benchmark', scanController.getBenchmarkCards);
+router.get('/examples', scanController.getExamplesCards);
 router.get('/history', scanController.getHistory);
 router.get('/:id', scanController.getScanById);
 router.delete('/:id', scanController.deleteScan);

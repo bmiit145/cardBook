@@ -1,0 +1,1025 @@
+const fs = require('fs');
+const path = require('path');
+
+const datasetDir = path.resolve(__dirname, '../data/dataset_50_cards');
+const imagesDir = path.resolve(datasetDir, 'images');
+
+if (!fs.existsSync(datasetDir)) fs.mkdirSync(datasetDir, { recursive: true });
+if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+
+const cards = [
+  // ==========================================
+  // ENGLISH CARDS (1 - 20)
+  // ==========================================
+  {
+    id: 1,
+    category: 'English',
+    title: 'Acme Technologies Pvt Ltd',
+    groundTruth: {
+      fullName: 'Dr. Harmish Patel',
+      company: 'Acme Technologies Pvt Ltd',
+      designation: 'Chief Technology Officer',
+      phone: '+91 98765 43210',
+      alternatePhone: '0261-2456789',
+      email: 'harmish.patel@acmetech.com',
+      website: 'https://www.acmetech.com',
+      address: '402 Titanium City Centre, Near Anand Nagar Cross Road, Prahlad Nagar',
+      city: 'Ahmedabad',
+      state: 'Gujarat',
+      country: 'India',
+      notes: 'Social: linkedin.com/in/harmish-patel'
+    },
+    rawOcrText: `Acme Technologies Pvt Ltd\nDr. Harmish Patel\nChief Technology Officer\n\nMobile: +91 98765 43210\nTel: 0261-2456789\nEmail: harmish.patel@acmetech.com\nWebsite: https://www.acmetech.com\n\n402 Titanium City Centre, Near Anand Nagar Cross Road,\nPrahlad Nagar, Ahmedabad, Gujarat 380015, India\nLinkedIn: linkedin.com/in/harmish-patel`
+  },
+  {
+    id: 2,
+    category: 'English',
+    title: 'Apex Cloud Solutions',
+    groundTruth: {
+      fullName: 'Sarah Jenkins',
+      company: 'Apex Cloud Solutions Inc.',
+      designation: 'Vice President of Engineering',
+      phone: '+1 415 555 0192',
+      alternatePhone: '+1 415 555 0198',
+      email: 'sjenkins@apexcloud.io',
+      website: 'https://www.apexcloud.io',
+      address: '750 Howard Street, Suite 400',
+      city: 'San Francisco',
+      state: 'California',
+      country: 'USA',
+      notes: 'Social: twitter.com/sjenkins_cloud'
+    },
+    rawOcrText: `Apex Cloud Solutions Inc.\nSarah Jenkins\nVice President of Engineering\n\nDirect: +1 (415) 555-0192\nOffice: +1 (415) 555-0198\nEmail: sjenkins@apexcloud.io\nWeb: https://www.apexcloud.io\n\n750 Howard Street, Suite 400, San Francisco, CA 94103\nTwitter: twitter.com/sjenkins_cloud`
+  },
+  {
+    id: 3,
+    category: 'English',
+    title: 'Nexus Legal Associates',
+    groundTruth: {
+      fullName: 'Adv. Vikramaditya Sharma',
+      company: 'Nexus Legal Associates LLP',
+      designation: 'Senior Partner',
+      phone: '+91 98110 23456',
+      alternatePhone: '011-23381234',
+      email: 'vikram@nexuslegal.in',
+      website: 'https://www.nexuslegal.in',
+      address: 'Chamber 24, Supreme Court Bar Chambers, Bhagwan Das Road',
+      city: 'New Delhi',
+      state: 'Delhi',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Nexus Legal Associates LLP\nAdv. Vikramaditya Sharma\nSenior Partner\n\nMobile: +91 98110 23456\nChamber: 011-23381234\nEmail: vikram@nexuslegal.in\nWebsite: www.nexuslegal.in\n\nChamber 24, Supreme Court Bar Chambers,\nBhagwan Das Road, New Delhi 110001`
+  },
+  {
+    id: 4,
+    category: 'English',
+    title: 'Metropolis Dental Hospital',
+    groundTruth: {
+      fullName: 'Dr. Neha Mukherjee',
+      company: 'Metropolis Dental Hospital',
+      designation: 'Managing Director & Dental Surgeon',
+      phone: '+91 98300 45678',
+      alternatePhone: '033-22894567',
+      email: 'drneha@metropolisdental.com',
+      website: 'https://www.metropolisdental.com',
+      address: '12B Park Street, Near St. Xavier\'s College',
+      city: 'Kolkata',
+      state: 'West Bengal',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Metropolis Dental Hospital\nDr. Neha Mukherjee\nManaging Director & Dental Surgeon\n\nContact: +91 98300 45678 | Ph: 033-22894567\nEmail: drneha@metropolisdental.com\nURL: https://www.metropolisdental.com\n\n12B Park Street, Near St. Xavier's College,\nKolkata, West Bengal 700016`
+  },
+  {
+    id: 5,
+    category: 'English',
+    title: 'Blue Horizon Logistics',
+    groundTruth: {
+      fullName: 'Rohan Deshmukh',
+      company: 'Blue Horizon Logistics Group',
+      designation: 'Operations Manager',
+      phone: '+91 98200 98765',
+      alternatePhone: '',
+      email: 'rohan.d@bluehorizonlogistics.com',
+      website: 'https://www.bluehorizonlogistics.com',
+      address: 'Plot 45, Sector 19, Vashi, Navi Mumbai',
+      city: 'Navi Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Blue Horizon Logistics Group\nRohan Deshmukh\nOperations Manager\n\nCell: +91 98200 98765\nMail: rohan.d@bluehorizonlogistics.com\nWeb: www.bluehorizonlogistics.com\n\nPlot 45, Sector 19, Vashi, Navi Mumbai, Maharashtra 400703`
+  },
+  {
+    id: 6,
+    category: 'English',
+    title: 'Vanguard Cyber Security',
+    groundTruth: {
+      fullName: 'Alok Ranjan',
+      company: 'Vanguard Cyber Security Solutions',
+      designation: 'Lead Security Architect',
+      phone: '+91 80456 78901',
+      alternatePhone: '',
+      email: 'alok.ranjan@vanguardcyber.tech',
+      website: 'https://www.vanguardcyber.tech',
+      address: '5th Floor, Salarpuria Cyber Park, Electronic City Phase 1',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      country: 'India',
+      notes: 'Social: github.com/alok-vanguard'
+    },
+    rawOcrText: `Vanguard Cyber Security Solutions\nAlok Ranjan\nLead Security Architect\n\nPhone: +91 80456 78901\nEmail: alok.ranjan@vanguardcyber.tech\nWebsite: https://www.vanguardcyber.tech\n\n5th Floor, Salarpuria Cyber Park, Electronic City Phase 1,\nBengaluru, Karnataka 560100\nGitHub: github.com/alok-vanguard`
+  },
+  {
+    id: 7,
+    category: 'English',
+    title: 'GreenLeaf Organic Foods',
+    groundTruth: {
+      fullName: 'Pooja Bhatt',
+      company: 'GreenLeaf Organic Foods Pvt Ltd',
+      designation: 'Founder & CEO',
+      phone: '+91 97123 45678',
+      alternatePhone: '+91 97123 45679',
+      email: 'pooja@greenleaffoods.co.in',
+      website: 'https://www.greenleaffoods.co.in',
+      address: 'Survey No. 88, National Highway 8, Navsari Road',
+      city: 'Surat',
+      state: 'Gujarat',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `GreenLeaf Organic Foods Pvt Ltd\nPooja Bhatt\nFounder & CEO\n\nMob: +91 97123 45678, +91 97123 45679\nEmail: pooja@greenleaffoods.co.in\nWebsite: www.greenleaffoods.co.in\n\nSurvey No. 88, National Highway 8, Navsari Road,\nSurat, Gujarat 394220`
+  },
+  {
+    id: 8,
+    category: 'English',
+    title: 'Urban Craft Architects',
+    groundTruth: {
+      fullName: 'Ar. Ananya Sen',
+      company: 'Urban Craft Architects & Interior Studio',
+      designation: 'Principal Architect',
+      phone: '+91 94330 11223',
+      alternatePhone: '',
+      email: 'ananya@urbancraftstudio.com',
+      website: 'https://www.urbancraftstudio.com',
+      address: 'Studio 304, Galleria Mall Complex, Baner Road',
+      city: 'Pune',
+      state: 'Maharashtra',
+      country: 'India',
+      notes: 'Social: instagram.com/urbancraft_designs'
+    },
+    rawOcrText: `Urban Craft Architects & Interior Studio\nAr. Ananya Sen\nPrincipal Architect\n\nMobile: +91 94330 11223\nEmail: ananya@urbancraftstudio.com\nWeb: https://www.urbancraftstudio.com\nInstagram: instagram.com/urbancraft_designs\n\nStudio 304, Galleria Mall Complex, Baner Road,\nPune, Maharashtra 411045`
+  },
+  {
+    id: 9,
+    category: 'English',
+    title: 'Zenith Financial Advisory',
+    groundTruth: {
+      fullName: 'Kunal Singhania',
+      company: 'Zenith Financial Advisory Services',
+      designation: 'Chartered Accountant & Wealth Advisor',
+      phone: '+91 98290 87654',
+      alternatePhone: '0141-2745678',
+      email: 'kunal@zenithwealth.in',
+      website: 'https://www.zenithwealth.in',
+      address: '201 Apex Tower, Tonk Road',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Zenith Financial Advisory Services\nKunal Singhania\nChartered Accountant & Wealth Advisor\n\nPh: +91 98290 87654 | Tel: 0141-2745678\nEmail: kunal@zenithwealth.in\nWebsite: www.zenithwealth.in\n\n201 Apex Tower, Tonk Road, Jaipur, Rajasthan 302015`
+  },
+  {
+    id: 10,
+    category: 'English',
+    title: 'Pinnacle Pharma Chem',
+    groundTruth: {
+      fullName: 'Rajiv Mehra',
+      company: 'Pinnacle Pharma Chem Industries',
+      designation: 'General Manager - Exports',
+      phone: '+91 99250 67890',
+      alternatePhone: '',
+      email: 'exports@pinnaclepharma.com',
+      website: 'https://www.pinnaclepharma.com',
+      address: 'Plot 102/3, GIDC Industrial Estate, Ankleshwar',
+      city: 'Ankleshwar',
+      state: 'Gujarat',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Pinnacle Pharma Chem Industries\nRajiv Mehra\nGeneral Manager - Exports\n\nMobile: +91 99250 67890\nEmail: exports@pinnaclepharma.com\nWeb: https://www.pinnaclepharma.com\n\nPlot 102/3, GIDC Industrial Estate, Ankleshwar, Gujarat 393002`
+  },
+  {
+    id: 11,
+    category: 'English',
+    title: 'Nova Robotics Lab',
+    groundTruth: {
+      fullName: 'Dr. Christopher Vance',
+      company: 'Nova Robotics Lab LLC',
+      designation: 'Head of AI Research',
+      phone: '+1 617 555 4321',
+      alternatePhone: '',
+      email: 'c.vance@novarobotics.ai',
+      website: 'https://www.novarobotics.ai',
+      address: '400 Technology Square, Cambridge',
+      city: 'Cambridge',
+      state: 'Massachusetts',
+      country: 'USA',
+      notes: 'Social: github.com/novarobotics'
+    },
+    rawOcrText: `Nova Robotics Lab LLC\nDr. Christopher Vance\nHead of AI Research\n\nDirect: +1 617 555 4321\nEmail: c.vance@novarobotics.ai\nSite: https://www.novarobotics.ai\nGitHub: github.com/novarobotics\n\n400 Technology Square, Cambridge, MA 02139`
+  },
+  {
+    id: 12,
+    category: 'English',
+    title: 'Imperial Jewels Mumbai',
+    groundTruth: {
+      fullName: 'Manish Zaveri',
+      company: 'Imperial Jewels & Diamond Trading Co.',
+      designation: 'Managing Partner',
+      phone: '+91 98210 55443',
+      alternatePhone: '022-23456789',
+      email: 'manish@imperialjewels.com',
+      website: 'https://www.imperialjewels.com',
+      address: '15 Zaveri Bazaar, Kalbadevi',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Imperial Jewels & Diamond Trading Co.\nManish Zaveri\nManaging Partner\n\nCell: +91 98210 55443\nOffice: 022-23456789\nEmail: manish@imperialjewels.com\nWebsite: www.imperialjewels.com\n\n15 Zaveri Bazaar, Kalbadevi, Mumbai 400002`
+  },
+  {
+    id: 13,
+    category: 'English',
+    title: 'Skyline Real Estate Developers',
+    groundTruth: {
+      fullName: 'Gaurav Agarwal',
+      company: 'Skyline Real Estate Developers Limited',
+      designation: 'Executive Director',
+      phone: '+91 98100 77889',
+      alternatePhone: '',
+      email: 'gaurav@skylinedevelopers.in',
+      website: 'https://www.skylinedevelopers.in',
+      address: 'Tower B, Cyber City, DLF Phase 2',
+      city: 'Gurgaon',
+      state: 'Haryana',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Skyline Real Estate Developers Limited\nGaurav Agarwal\nExecutive Director\n\nPhone: +91 98100 77889\nEmail: gaurav@skylinedevelopers.in\nWebsite: https://www.skylinedevelopers.in\n\nTower B, Cyber City, DLF Phase 2, Gurgaon, Haryana 122002`
+  },
+  {
+    id: 14,
+    category: 'English',
+    title: 'Kaveri Paper & Packaging',
+    groundTruth: {
+      fullName: 'S. Ramanathan',
+      company: 'Kaveri Paper & Packaging Mills',
+      designation: 'Commercial Manager',
+      phone: '+91 94440 33445',
+      alternatePhone: '044-28114455',
+      email: 'ramanathan@kaveripaper.com',
+      website: 'https://www.kaveripaper.com',
+      address: '88 Mount Road, Anna Salai',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Kaveri Paper & Packaging Mills\nS. Ramanathan\nCommercial Manager\n\nMobile: +91 94440 33445\nTel: 044-28114455\nEmail: ramanathan@kaveripaper.com\nWeb: www.kaveripaper.com\n\n88 Mount Road, Anna Salai, Chennai, Tamil Nadu 600002`
+  },
+  {
+    id: 15,
+    category: 'English',
+    title: 'ByteCraft Media Agency',
+    groundTruth: {
+      fullName: 'Tanya D\'Souza',
+      company: 'ByteCraft Media Agency',
+      designation: 'Creative Director',
+      phone: '+91 98205 11998',
+      alternatePhone: '',
+      email: 'tanya@bytecraft.agency',
+      website: 'https://www.bytecraft.agency',
+      address: '14 Chapel Road, Bandra West',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      country: 'India',
+      notes: 'Social: instagram.com/bytecraftagency'
+    },
+    rawOcrText: `ByteCraft Media Agency\nTanya D'Souza\nCreative Director\n\nMobile: +91 98205 11998\nEmail: tanya@bytecraft.agency\nWebsite: https://www.bytecraft.agency\nInstagram: instagram.com/bytecraftagency\n\n14 Chapel Road, Bandra West, Mumbai 400050`
+  },
+  {
+    id: 16,
+    category: 'English',
+    title: 'Trident Industrial Valves',
+    groundTruth: {
+      fullName: 'Prashant Kothari',
+      company: 'Trident Industrial Valves & Engineering Co.',
+      designation: 'Proprietor',
+      phone: '+91 98240 66778',
+      alternatePhone: '',
+      email: 'sales@tridentvalves.in',
+      website: 'https://www.tridentvalves.in',
+      address: 'Plot 55, Makarpura GIDC, Near Bus Depot',
+      city: 'Vadodara',
+      state: 'Gujarat',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Trident Industrial Valves & Engineering Co.\nPrashant Kothari\nProprietor\n\nCell: +91 98240 66778\nEmail: sales@tridentvalves.in\nWeb: www.tridentvalves.in\n\nPlot 55, Makarpura GIDC, Near Bus Depot, Vadodara, Gujarat 390010`
+  },
+  {
+    id: 17,
+    category: 'English',
+    title: 'AgroTech Global Fertilizers',
+    groundTruth: {
+      fullName: 'Hardeep Singh Gill',
+      company: 'AgroTech Global Fertilizers Limited',
+      designation: 'Regional Marketing Head',
+      phone: '+91 98150 44332',
+      alternatePhone: '',
+      email: 'h.gill@agrotechglobal.com',
+      website: 'https://www.agrotechglobal.com',
+      address: 'GT Road, Near Dholewal Chowk',
+      city: 'Ludhiana',
+      state: 'Punjab',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `AgroTech Global Fertilizers Limited\nHardeep Singh Gill\nRegional Marketing Head\n\nMob: +91 98150 44332\nEmail: h.gill@agrotechglobal.com\nWebsite: https://www.agrotechglobal.com\n\nGT Road, Near Dholewal Chowk, Ludhiana, Punjab 141003`
+  },
+  {
+    id: 18,
+    category: 'English',
+    title: 'Evolve Health & Diagnostics',
+    groundTruth: {
+      fullName: 'Dr. Shalini Rao',
+      company: 'Evolve Health & Diagnostics Centre',
+      designation: 'Medical Director',
+      phone: '+91 98450 12890',
+      alternatePhone: '080-25567890',
+      email: 'drshalini@evolvehealth.org',
+      website: 'https://www.evolvehealth.org',
+      address: '22 Indiranagar 100 Feet Road',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Evolve Health & Diagnostics Centre\nDr. Shalini Rao\nMedical Director\n\nCall: +91 98450 12890 | 080-25567890\nEmail: drshalini@evolvehealth.org\nWeb: https://www.evolvehealth.org\n\n22 Indiranagar 100 Feet Road, Bengaluru, Karnataka 560038`
+  },
+  {
+    id: 19,
+    category: 'English',
+    title: 'Solaris Energy Systems',
+    groundTruth: {
+      fullName: 'Aditya Vardhan',
+      company: 'Solaris Energy Systems Pvt Ltd',
+      designation: 'Project Director',
+      phone: '+91 98490 88776',
+      alternatePhone: '',
+      email: 'aditya@solarisenergy.co.in',
+      website: 'https://www.solarisenergy.co.in',
+      address: 'Hitech City Road, Madhapur',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Solaris Energy Systems Pvt Ltd\nAditya Vardhan\nProject Director\n\nMobile: +91 98490 88776\nEmail: aditya@solarisenergy.co.in\nWebsite: www.solarisenergy.co.in\n\nHitech City Road, Madhapur, Hyderabad, Telangana 500081`
+  },
+  {
+    id: 20,
+    category: 'English',
+    title: 'Heritage Silk Weavers',
+    groundTruth: {
+      fullName: 'Mukesh Tripathi',
+      company: 'Heritage Silk Weavers Association',
+      designation: 'Secretary',
+      phone: '+91 94150 99887',
+      alternatePhone: '',
+      email: 'info@heritagesilk.in',
+      website: 'https://www.heritagesilk.in',
+      address: 'Gowdowlia Chowk, Dashashwamedh Road',
+      city: 'Varanasi',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `Heritage Silk Weavers Association\nMukesh Tripathi\nSecretary\n\nContact: +91 94150 99887\nEmail: info@heritagesilk.in\nWebsite: https://www.heritagesilk.in\n\nGowdowlia Chowk, Dashashwamedh Road, Varanasi, UP 221001`
+  },
+
+  // ==========================================
+  // GUJARATI CARDS (21 - 40)
+  // ==========================================
+  {
+    id: 21,
+    category: 'Gujarati',
+    title: 'કષ્ટભંજન ફર્નિચર (Kashtbhanjan)',
+    groundTruth: {
+      fullName: 'સંજય બી. વસાણી (વિકળીયા)',
+      company: 'કષ્ટભંજન ફર્નિચર',
+      designation: '',
+      phone: '+91 90997 50478',
+      alternatePhone: '+91 99137 85964',
+      email: '',
+      website: '',
+      address: 'ધ ગેલેરીયા બિઝનેસ હબ - 2, મહાવીર ચોક, યોગીચાકની બાજુમાં, યોગીચોક',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'વુડન ફર્નિચર, PVC ફર્નિચર\nમોડયુલર ફર્નિચર'
+    },
+    rawOcrText: `4 સંજય બી. વસાણી ઠે. શ્રી હરિ॥ 8૭90997 50478 દ. 3\n(વિકળીયા) AN ક\n99137 85964 Kashtbhanjan -\nsue 5 ७\nષ્ઠ O° ફર્નિચર\n- વુડન ફર્નિચર, PVC ફર્નિચર\nછ © મોડયુલર ફર્નિચર ©\nપ... હ ® ધ ગેલેરીયા બિઝનેસ હબ - 2, મહાવીર ચોક,\n| યોગીચાકની બાજુમાં, યોગીચોક, સુરત.`
+  },
+  {
+    id: 22,
+    category: 'Gujarati',
+    title: 'શ્રીજી ઇન્ડસ્ટ્રીઝ પ્રાઇવેટ લિમિટેડ',
+    groundTruth: {
+      fullName: 'શ્રી રાજેશ મહેતા',
+      company: 'શ્રીજી ઇન્ડસ્ટ્રીઝ પ્રાઇવેટ લિમિટેડ',
+      designation: 'પ્રમુખ',
+      phone: '+91 98250 12345',
+      alternatePhone: '',
+      email: 'rajesh@shreejiindustries.com',
+      website: 'https://www.shreeji.in',
+      address: 'પ્લોટ નં. 12, જીઆઇડીસી, સચિન',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `શ્રી રાજેશ મહેતા\nપ્રમુખ\nશ્રીજી ઇન્ડસ્ટ્રીઝ પ્રાઇવેટ લિમિટેડ\nમોબાઇલ: +91 98250 12345\nઈમેલ: rajesh@shreejiindustries.com\nવેબસાઇટ: https://www.shreeji.in\nસરનામું: પ્લોટ નં. 12, જીઆઇડીસી, સચિન, સુરત, ગુજરાત - 394230`
+  },
+  {
+    id: 23,
+    category: 'Gujarati',
+    title: 'ખોડિયાર જ્વેલર્સ (Khodiyar)',
+    groundTruth: {
+      fullName: 'પરેશભાઈ પટેલ (ધારી)',
+      company: 'ખોડિયાર જ્વેલર્સ',
+      designation: 'માલિક',
+      phone: '+91 98251 98765',
+      alternatePhone: '+91 98251 98766',
+      email: '',
+      website: '',
+      address: 'શોપ નં. 15, મિનીબજાર, વરાછા રોડ',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'સોના-ચાંદીના દાગીનાના હોલસેલ વેપારી'
+    },
+    rawOcrText: `॥ શ્રી ખોડિયાર કૃપા ॥\nખોડિયાર જ્વેલર્સ\nપરેશભાઈ પટેલ (ધારી)\nમાલિક\n\nમો. 98251 98765, 98251 98766\nશોપ નં. 15, મિનીબજાર, વરાછા રોડ, સુરત.\nસોના-ચાંદીના દાગીનાના હોલસેલ વેપારી`
+  },
+  {
+    id: 24,
+    category: 'Gujarati',
+    title: 'રાધે ટેક્સટાઇલ માર્કેટ',
+    groundTruth: {
+      fullName: 'દિનેશભાઈ લાખાણી',
+      company: 'રાધે ટેક્સટાઇલ',
+      designation: 'ભાગીદાર',
+      phone: '+91 99099 11223',
+      alternatePhone: '',
+      email: 'radhetextile.surat@gmail.com',
+      website: '',
+      address: 'દુકાન નં. 302, રિંગરોડ, સુરત ટેક્સટાઇલ માર્કેટ',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'ફેન્સી સાડી અને ડ્રેસ મટીરીયલ'
+    },
+    rawOcrText: `॥ જય શ્રી કૃષ્ણ ॥\nરાધે ટેક્સટાઇલ\nદિનેશભાઈ લાખાણી\nભાગીદાર\n\nમો. 99099 11223\nEmail: radhetextile.surat@gmail.com\nદુકાન નં. 302, રિંગરોડ, સુરત ટેક્સટાઇલ માર્કેટ, સુરત.\nફેન્સી સાડી અને ડ્રેસ મટીરીયલ`
+  },
+  {
+    id: 25,
+    category: 'Gujarati',
+    title: 'મારૂતિ હાર્ડવેર & પ્લાયવુડ',
+    groundTruth: {
+      fullName: 'અશોકભાઈ સોરઠીયા',
+      company: 'મારૂતિ હાર્ડવેર & પ્લાયવુડ',
+      designation: 'સંચાલક',
+      phone: '+91 98790 44556',
+      alternatePhone: '+91 98790 44557',
+      email: '',
+      website: '',
+      address: 'પ્લોટ નં. 8, સરદાર ચોક, બાપુનગર',
+      city: 'અમદાવાદ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `॥ શ્રી હનુમાન કૃપા ॥\nમારૂતિ હાર્ડવેર & પ્લાયવુડ\nઅશોકભાઈ સોરઠીયા\nસંચાલક\n\nમો. 98790 44556 / 98790 44557\nપ્લોટ નં. 8, સરદાર ચોક, બાપુનગર, અમદાવાદ - 380024`
+  },
+  {
+    id: 26,
+    category: 'Gujarati',
+    title: 'શિવશક્તિ ડેકોરેટર્સ',
+    groundTruth: {
+      fullName: 'જયેશભાઈ કાકડિયા (ગારીયાધાર)',
+      company: 'શિવશક્તિ ડેકોરેટર્સ',
+      designation: '',
+      phone: '+91 97230 88990',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'મહાદેવ મંદિર સામે, કાલાવડ રોડ',
+      city: 'રાજકોટ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'મંડપ સર્વિસ, સાઉન્ડ સિસ્ટમ અને લાઇટિંગ'
+    },
+    rawOcrText: `॥ ૐ નમઃ શિવાય ॥\nશિવશક્તિ ડેકોરેટર્સ\nજયેશભાઈ કાકડિયા (ગારીયાધાર)\n\nમોબાઇલ: 97230 88990\nમહાદેવ મંદિર સામે, કાલાવડ રોડ, રાજકોટ.\nમંડપ સર્વિસ, સાઉન્ડ સિસ્ટમ અને લાઇટિંગ`
+  },
+  {
+    id: 27,
+    category: 'Gujarati',
+    title: 'પટેલ ટ્રેડિંગ કંપની',
+    groundTruth: {
+      fullName: 'હરેશભાઈ પટેલ',
+      company: 'પટેલ ટ્રેડિંગ કંપની',
+      designation: 'પ્રોપ્રાઇટર',
+      phone: '+91 94260 33221',
+      alternatePhone: '',
+      email: 'pateltrading@yahoo.com',
+      website: '',
+      address: 'માર્કેટ યાર્ડ, ઊંઝા',
+      city: 'ઊંઝા',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'જીરું, વરિયાળી અને ઇસબગુલના કમિશન એજન્ટ'
+    },
+    rawOcrText: `પટેલ ટ્રેડિંગ કંપની\nહરેશભાઈ પટેલ\nપ્રોપ્રાઇટર\n\nમોબાઇલ: 94260 33221\nEmail: pateltrading@yahoo.com\nમાર્કેટ યાર્ડ, ઊંઝા, ગુજરાત\nજીરું, વરિયાળી અને ઇસબગુલના કમિશન એજન્ટ`
+  },
+  {
+    id: 28,
+    category: 'Gujarati',
+    title: 'ગાયત્રી પ્રિન્ટર્સ & સ્ટેશનરી',
+    groundTruth: {
+      fullName: 'વિજયભાઈ પંડ્યા',
+      company: 'ગાયત્રી પ્રિન્ટર્સ & સ્ટેશનરી',
+      designation: 'માલિક',
+      phone: '+91 98255 66778',
+      alternatePhone: '',
+      email: 'gayatripress@gmail.com',
+      website: '',
+      address: 'સ્ટેશન રોડ, આણંદ',
+      city: 'આણંદ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'મલ્ટીકલર ઓફસેટ પ્રિન્ટિંગ'
+    },
+    rawOcrText: `॥ ગાયત્રી માતાય નમઃ ॥\nગાયત્રી પ્રિન્ટર્સ & સ્ટેશનરી\nવિજયભાઈ પંડ્યા\nમાલિક\n\nફોન: 98255 66778\nEmail: gayatripress@gmail.com\nસ્ટેશન રોડ, આણંદ, ગુજરાત 388001\nમલ્ટીકલર ઓફસેટ પ્રિન્ટિંગ`
+  },
+  {
+    id: 29,
+    category: 'Gujarati',
+    title: 'કૃષ્ણ એન્ટરપ્રાઇઝ',
+    groundTruth: {
+      fullName: 'ચેતનભાઈ વાઘેલા',
+      company: 'કૃષ્ણ એન્ટરપ્રાઇઝ',
+      designation: 'મેનેજર',
+      phone: '+91 99740 55443',
+      alternatePhone: '',
+      email: 'krishna.chetan@gmail.com',
+      website: '',
+      address: 'નવરંગપુરા, સી.જી. રોડ',
+      city: 'અમદાવાદ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'સીસીટીવી કેમેરા અને સિક્યોરિટી સિસ્ટમ'
+    },
+    rawOcrText: `કૃષ્ણ એન્ટરપ્રાઇઝ\nચેતનભાઈ વાઘેલા\nમેનેજર\n\nમોબાઇલ: 99740 55443\nEmail: krishna.chetan@gmail.com\nનવરંગપુરા, સી.જી. રોડ, અમદાવાદ 380009\nસીસીટીવી કેમેરા અને સિક્યોરિટી સિસ્ટમ`
+  },
+  {
+    id: 30,
+    category: 'Gujarati',
+    title: 'ભવાની કન્સ્ટ્રક્શન',
+    groundTruth: {
+      fullName: 'પ્રવિણભાઈ ગોહિલ',
+      company: 'ભવાની કન્સ્ટ્રક્શન',
+      designation: 'બિલ્ડર & ડેવલપર્સ',
+      phone: '+91 98252 11447',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'વાઘાવાડી રોડ, વિજયરાજ નગર',
+      city: 'ભાવનગર',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `॥ જય ભવાની ॥\nભવાની કન્સ્ટ્રક્શન\nપ્રવિણભાઈ ગોહિલ\nબિલ્ડર & ડેવલપર્સ\n\nમો. 98252 11447\nવાઘાવાડી રોડ, વિજયરાજ નગર, ભાવનગર, ગુજરાત 364002`
+  },
+  {
+    id: 31,
+    category: 'Gujarati',
+    title: 'ચામુંડા ઓટોમોબાઇલ્સ',
+    groundTruth: {
+      fullName: 'મહેશભાઈ ચૌહાણ',
+      company: 'ચામુંડા ઓટોમોબાઇલ્સ',
+      designation: '',
+      phone: '+91 97140 22334',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'હાઇવે રોડ, મોરબી',
+      city: 'મોરબી',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'ટુ-વ્હીલર સ્પેરપાર્ટ્સ અને સર્વિસ'
+    },
+    rawOcrText: `॥ જય ચામુંડા મા ॥\nચામુંડા ઓટોમોબાઇલ્સ\nમહેશભાઈ ચૌહાણ\n\nમો. 97140 22334\nહાઇવે રોડ, મોરબી, ગુજરાત\nટુ-વ્હીલર સ્પેરપાર્ટ્સ અને સર્વિસ`
+  },
+  {
+    id: 32,
+    category: 'Gujarati',
+    title: 'નવકાર સ્ટીલ & એન્જિનિયરિંગ',
+    groundTruth: {
+      fullName: 'ભાવિનભાઈ શાહ',
+      company: 'નવકાર સ્ટીલ & એન્જિનિયરિંગ',
+      designation: 'ભાગીદાર',
+      phone: '+91 98244 88776',
+      alternatePhone: '',
+      email: 'navkarsteel@rediffmail.com',
+      website: '',
+      address: 'શેડ નં. 24, અટલાદરા જીઆઇડીસી',
+      city: 'વડોદરા',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `નવકાર સ્ટીલ & એન્જિનિયરિંગ\nભાવિનભાઈ શાહ\nભાગીદાર\n\nમોબાઇલ: 98244 88776\nEmail: navkarsteel@rediffmail.com\nશેડ નં. 24, અટલાદરા જીઆઇડીસી, વડોદરા 390012`
+  },
+  {
+    id: 33,
+    category: 'Gujarati',
+    title: 'શ્રી રામ ડેરી & સ્વીટ્સ',
+    groundTruth: {
+      fullName: 'ઘનશ્યામભાઈ રબારી',
+      company: 'શ્રી રામ ડેરી & સ્વીટ્સ',
+      designation: 'ઓનર',
+      phone: '+91 99245 66778',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'ટાઉન હોલ પાસે, મહેસાણા',
+      city: 'મહેસાણા',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'શુદ્ધ ઘીની મીઠાઈ અને દૂધની બનાવટો'
+    },
+    rawOcrText: `શ્રી રામ ડેરી & સ્વીટ્સ\nઘનશ્યામભાઈ રબારી\nઓનર\n\nમો. 99245 66778\nટાઉન હોલ પાસે, મહેસાણા, ગુજરાત 384001\nશુદ્ધ ઘીની મીઠાઈ અને દૂધની બનાવટો`
+  },
+  {
+    id: 34,
+    category: 'Gujarati',
+    title: 'જલારામ પ્લાયવુડ સેન્ટર',
+    groundTruth: {
+      fullName: 'કિશોરભાઈ ઠક્કર',
+      company: 'જલારામ પ્લાયવુડ સેન્ટર',
+      designation: 'માલિક',
+      phone: '+91 98254 33221',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'બસ સ્ટેન્ડ રોડ, નડિયાદ',
+      city: 'નડિયાદ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'ટીકવુડ, ફ્લશ ડોર અને લેમિનેટ શીટ્સ'
+    },
+    rawOcrText: `॥ જય જલારામ ॥\nજલારામ પ્લાયવુડ સેન્ટર\nકિશોરભાઈ ઠક્કર\nમાલિક\n\nમોબાઇલ: 98254 33221\nબસ સ્ટેન્ડ રોડ, નડિયાદ, ગુજરાત\nટીકવુડ, ફ્લશ ડોર અને લેમિનેટ શીટ્સ`
+  },
+  {
+    id: 35,
+    category: 'Gujarati',
+    title: 'સાગર ઇલેક્ટ્રોનિક્સ',
+    groundTruth: {
+      fullName: 'મનસુખભાઈ દોંગા (મોણપુર)',
+      company: 'સાગર ઇલેક્ટ્રોનિક્સ',
+      designation: '',
+      phone: '+91 98791 22334',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'હીરાબાગ સર્કલ, વરાછા',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'હોમ એપ્લાયન્સીસ અને રીપેરીંગ'
+    },
+    rawOcrText: `સાગર ઇલેક્ટ્રોનિક્સ\nમનસુખભાઈ દોંગા (મોણપુર)\n\nમો. 98791 22334\nહીરાબાગ સર્કલ, વરાછા, સુરત - 395006\nહોમ એપ્લાયન્સીસ અને રીપેરીંગ`
+  },
+  {
+    id: 36,
+    category: 'Gujarati',
+    title: 'તિરુપતિ બાલાજી ટ્રાન્સપોર્ટ',
+    groundTruth: {
+      fullName: 'નરેશભાઈ આહીર',
+      company: 'તિરુપતિ બાલાજી ટ્રાન્સપોર્ટ',
+      designation: 'સંચાલક',
+      phone: '+91 98253 99887',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'ટ્રાન્સપોર્ટ નગર, ગાંધીધામ',
+      city: 'ગાંધીધામ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'ઓલ ઇન્ડિયા ગુડ્સ કેરિયર'
+    },
+    rawOcrText: `તિરુપતિ બાલાજી ટ્રાન્સપોર્ટ\nનરેશભાઈ આહીર\nસંચાલક\n\nમોબાઇલ: 98253 99887\nટ્રાન્સપોર્ટ નગર, ગાંધીધામ - કચ્છ 370201\nઓલ ઇન્ડિયા ગુડ્સ કેરિયર`
+  },
+  {
+    id: 37,
+    category: 'Gujarati',
+    title: 'અંબાજી માર્બલ & ગ્રેનાઇટ',
+    groundTruth: {
+      fullName: 'રમેશભાઈ પ્રજાપતિ',
+      company: 'અંબાજી માર્બલ & ગ્રેનાઇટ',
+      designation: '',
+      phone: '+91 98258 77665',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'પાલનપુર પાટિયા, રાંદેર રોડ',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'રાજસ્થાની માર્બલ અને ઇટાલિયન ટાઇલ્સ'
+    },
+    rawOcrText: `॥ જય અંબે ॥\nઅંબાજી માર્બલ & ગ્રેનાઇટ\nરમેશભાઈ પ્રજાપતિ\n\nફોન: 98258 77665\nપાલનપુર પાટિયા, રાંદેર રોડ, સુરત 395009\nરાજસ્થાની માર્બલ અને ઇટાલિયન ટાઇલ્સ`
+  },
+  {
+    id: 38,
+    category: 'Gujarati',
+    title: 'યોગી પ્લાસ્ટિક પ્રોડક્ટ્સ',
+    groundTruth: {
+      fullName: 'હસમુખભાઈ બોઘરા',
+      company: 'યોગી પ્લાસ્ટિક પ્રોડક્ટ્સ',
+      designation: 'ભાગીદાર',
+      phone: '+91 99252 44332',
+      alternatePhone: '',
+      email: 'yogiplastic@gmail.com',
+      website: '',
+      address: 'શાપર વેરાવળ જીઆઇડીસી',
+      city: 'રાજકોટ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `યોગી પ્લાસ્ટિક પ્રોડક્ટ્સ\nહસમુખભાઈ બોઘરા\nભાગીદાર\n\nમોબાઇલ: 99252 44332\nEmail: yogiplastic@gmail.com\nશાપર વેરાવળ જીઆઇડીસી, રાજકોટ, ગુજરાત 360024`
+  },
+  {
+    id: 39,
+    category: 'Gujarati',
+    title: 'શ્રીનાથજી ટેક્સટાઇલ પ્રોસેસર્સ',
+    groundTruth: {
+      fullName: 'હાર્દિકભાઈ શાહ',
+      company: 'શ્રીનાથજી ટેક્સટાઇલ પ્રોસેસર્સ પ્રા. લિ.',
+      designation: 'ડિરેક્ટર',
+      phone: '+91 98256 11229',
+      alternatePhone: '',
+      email: 'hardik@shreenathjitextile.com',
+      website: 'https://www.shreenathjitextile.com',
+      address: 'પાંડેસરા જીઆઇડીસી',
+      city: 'સુરત',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `શ્રીનાથજી ટેક્સટાઇલ પ્રોસેસર્સ પ્રા. લિ.\nહાર્દિકભાઈ શાહ\nડિરેક્ટર\n\nમો. 98256 11229\nEmail: hardik@shreenathjitextile.com\nWeb: https://www.shreenathjitextile.com\nપાંડેસરા જીઆઇડીસી, સુરત, ગુજરાત 394221`
+  },
+  {
+    id: 40,
+    category: 'Gujarati',
+    title: 'ગણેશ એગ્રો કેમિકલ્સ',
+    groundTruth: {
+      fullName: 'વિપુલભાઈ પટેલ',
+      company: 'ગણેશ એગ્રો કેમિકલ્સ',
+      designation: 'મેનેજિંગ ડિરેક્ટર',
+      phone: '+91 98241 55667',
+      alternatePhone: '',
+      email: 'ganeshagro@rediffmail.com',
+      website: '',
+      address: 'નરોડા જીઆઇડીસી, ફેઝ 1',
+      city: 'અમદાવાદ',
+      state: 'ગુજરાત',
+      country: 'India',
+      notes: 'જંતુનાશક દવાઓ અને ખાતર'
+    },
+    rawOcrText: `॥ શ્રી ગણેશાય નમઃ ॥\nગણેશ એગ્રો કેમિકલ્સ\nવિપુલભાઈ પટેલ\nમેનેજિંગ ડિરેક્ટર\n\nમોબાઇલ: 98241 55667\nEmail: ganeshagro@rediffmail.com\nનરોડા જીઆઇડીસી, ફેઝ 1, અમદાવાદ 382330\nજંતુનાશક દવાઓ અને ખાતર`
+  },
+
+  // ==========================================
+  // HINDI / BILINGUAL CARDS (41 - 50)
+  // ==========================================
+  {
+    id: 41,
+    category: 'Hindi',
+    title: 'बालाजी स्टील इंडस्ट्रीज',
+    groundTruth: {
+      fullName: 'राजेश कुमार अग्रवाल',
+      company: 'बालाजी स्टील इंडस्ट्रीज लिमिटेड',
+      designation: 'प्रबंध निदेशक',
+      phone: '+91 98101 23456',
+      alternatePhone: '011-27891234',
+      email: 'rajesh@balajisteel.in',
+      website: 'https://www.balajisteel.in',
+      address: 'प्लाट 18, मायापुरी इंडस्ट्रियल एरिया, फेज 2',
+      city: 'New Delhi',
+      state: 'Delhi',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `॥ श्री गणेशाय नमः ॥\nबालाजी स्टील इंडस्ट्रीज लिमिटेड\nराजेश कुमार अग्रवाल\nप्रबंध निदेशक\n\nमोबाइल: +91 98101 23456\nफोन: 011-27891234\nईमेल: rajesh@balajisteel.in\nवेबसाइट: https://www.balajisteel.in\n\nप्लाट 18, मायापुरी इंडस्ट्रियल एरिया, फेज 2, नई दिल्ली 110064`
+  },
+  {
+    id: 42,
+    category: 'Hindi',
+    title: 'कृष्णा गारमेंट्स & होजरी',
+    groundTruth: {
+      fullName: 'मनोज कुमार गुप्ता',
+      company: 'कृष्णा गारमेंट्स',
+      designation: 'मालिक',
+      phone: '+91 98390 12345',
+      alternatePhone: '',
+      email: 'krishnagarments.kanpur@gmail.com',
+      website: '',
+      address: 'दुकान नं. 45, नया गंज बाजार',
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `॥ जय श्री कृष्णा ॥\nकृष्णा गारमेंट्स\nमनोज कुमार गुप्ता\nमालिक\n\nमोबाइल: +91 98390 12345\nEmail: krishnagarments.kanpur@gmail.com\nदुकान नं. 45, नया गंज बाजार, कानपुर, उत्तर प्रदेश 208001`
+  },
+  {
+    id: 43,
+    category: 'Hindi',
+    title: 'सूर्य ऑटोमोबाइल्स & सर्विस',
+    groundTruth: {
+      fullName: 'सुनील शर्मा',
+      company: 'सूर्य ऑटोमोबाइल्स',
+      designation: 'संचालक',
+      phone: '+91 94250 88776',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'एम.जी. रोड, पलासिया चौराहा',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      country: 'India',
+      notes: 'कार एसी रिपेयरिंग एवं डेंटिंग पेंटिंग'
+    },
+    rawOcrText: `सूर्य ऑटोमोबाइल्स\nसुनील शर्मा\nसंचालक\n\nफोन: 94250 88776\nएम.जी. रोड, पलासिया चौराहा, इंदौर, मध्य प्रदेश 452001\nकार एसी रिपेयरिंग एवं डेंटिंग पेंटिंग`
+  },
+  {
+    id: 44,
+    category: 'Hindi',
+    title: 'शिवम इलेक्ट्रॉनिक्स & होम अप्लायंसेज',
+    groundTruth: {
+      fullName: 'अजय कुमार वर्मा',
+      company: 'शिवम इलेक्ट्रॉनिक्स',
+      designation: 'प्रोपराइटर',
+      phone: '+91 98180 55443',
+      alternatePhone: '',
+      email: 'shivamelectronics@hotmail.com',
+      website: '',
+      address: 'मुख्य बाजार, चांदनी चौक',
+      city: 'Delhi',
+      state: 'Delhi',
+      country: 'India',
+      notes: 'एलईडी टीवी, फ्रिज, वाशिंग मशीन विक्रेता'
+    },
+    rawOcrText: `॥ ॐ नमः शिवाय ॥\nशिवम इलेक्ट्रॉनिक्स\nअजय कुमार वर्मा\nप्रोपराइटर\n\nमोब: +91 98180 55443\nईमेल: shivamelectronics@hotmail.com\nमुख्य बाजार, चांदनी चौक, पुरानी दिल्ली 110006\nएलईडी टीवी, फ्रिज, वाशिंग मशीन विक्रेता`
+  },
+  {
+    id: 45,
+    category: 'Hindi',
+    title: 'मां भवानी ट्रांसपोर्ट कंपनी',
+    groundTruth: {
+      fullName: 'बलवंत सिंह यादव',
+      company: 'मां भवानी ट्रांसपोर्ट कंपनी',
+      designation: 'प्रबंधक',
+      phone: '+91 98260 77889',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'ट्रांसपोर्ट नगर, बाईपास रोड',
+      city: 'Bhopal',
+      state: 'Madhya Pradesh',
+      country: 'India',
+      notes: 'अखिल भारतीय माल ढुलाई सेवा'
+    },
+    rawOcrText: `मां भवानी ट्रांसपोर्ट कंपनी\nबलवंत सिंह यादव\nप्रबंधक\n\nमो. +91 98260 77889\nट्रांसपोर्ट नगर, बाईपास रोड, भोपाल, मध्य प्रदेश 462023\nअखिल भारतीय माल ढुलाई सेवा`
+  },
+  {
+    id: 46,
+    category: 'Hindi',
+    title: 'भारद्वाज लॉ एसोसिएट्स',
+    groundTruth: {
+      fullName: 'अधिवक्ता आलोक भारद्वाज',
+      company: 'भारद्वाज लॉ एसोसिएट्स',
+      designation: 'वरिष्ठ अधिवक्ता',
+      phone: '+91 98115 33221',
+      alternatePhone: '',
+      email: 'advocate.alok@bhardwajlaw.in',
+      website: 'https://www.bhardwajlaw.in',
+      address: 'चैंबर नं 108, कड़कड़डूमा कोर्ट',
+      city: 'Delhi',
+      state: 'Delhi',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `भारद्वाज लॉ एसोसिएट्स\nअधिवक्ता आलोक भारद्वाज\nवरिष्ठ अधिवक्ता\n\nफोन: +91 98115 33221\nईमेल: advocate.alok@bhardwajlaw.in\nवेब: https://www.bhardwajlaw.in\nचैंबर नं 108, कड़कड़डूमा कोर्ट, दिल्ली 110032`
+  },
+  {
+    id: 47,
+    category: 'Hindi',
+    title: 'आशीर्वाद मिष्ठान भंडार',
+    groundTruth: {
+      fullName: 'रामअवतार शर्मा',
+      company: 'आशीर्वाद मिष्ठान भंडार',
+      designation: 'मालिक',
+      phone: '+91 94140 66554',
+      alternatePhone: '',
+      email: '',
+      website: '',
+      address: 'जौहरी बाजार, हवा महल के पास',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      country: 'India',
+      notes: 'शुद्ध देशी घी की मिठाइयां एवं नमकीन'
+    },
+    rawOcrText: `आशीर्वाद मिष्ठान भंडार\nरामअवतार शर्मा\nमालिक\n\nमो. 94140 66554\nजौहरी बाजार, हवा महल के पास, जयपुर, राजस्थान 302003\nशुद्ध देशी घी की मिठाइयां एवं नमकीन`
+  },
+  {
+    id: 48,
+    category: 'Hindi',
+    title: 'रतन ज्वेलर्स',
+    groundTruth: {
+      fullName: 'रतन लाल जैन',
+      company: 'रतन ज्वेलर्स प्राइवेट लिमिटेड',
+      designation: 'निदेशक',
+      phone: '+91 98292 44331',
+      alternatePhone: '',
+      email: 'ratanjewellers@gmail.com',
+      website: '',
+      address: 'सराफा बाजार',
+      city: 'Indore',
+      state: 'Madhya Pradesh',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `रतन ज्वेलर्स प्राइवेट लिमिटेड\nरतन लाल जैन\nनिदेशक\n\nमोबाइल: 98292 44331\nEmail: ratanjewellers@gmail.com\nसराफा बाजार, इंदौर, मध्य प्रदेश 452002`
+  },
+  {
+    id: 49,
+    category: 'Hindi',
+    title: 'गोयल कंस्ट्रक्शन & बिल्डर्स',
+    groundTruth: {
+      fullName: 'दीपक गोयल',
+      company: 'गोयल कंस्ट्रक्शन & बिल्डर्स',
+      designation: 'साझेदार',
+      phone: '+91 98105 88990',
+      alternatePhone: '',
+      email: 'deepak@goyalbuilders.in',
+      website: 'https://www.goyalbuilders.in',
+      address: 'सेक्टर 18, अट्टा मार्केट के पास',
+      city: 'Noida',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `गोयल कंस्ट्रक्शन & बिल्डर्स\nदीपक गोयल\nसाझेदार\n\nफोन: +91 98105 88990\nEmail: deepak@goyalbuilders.in\nवेबसाइट: https://www.goyalbuilders.in\nसेक्टर 18, अट्टा मार्केट के पास, नोएडा, उत्तर प्रदेश 201301`
+  },
+  {
+    id: 50,
+    category: 'Hindi',
+    title: 'संजीवनी हॉस्पिटल & रिसर्च सेंटर',
+    groundTruth: {
+      fullName: 'डॉ. संजय कुमार श्रीवास्तव',
+      company: 'संजीवनी हॉस्पिटल & रिसर्च सेंटर',
+      designation: 'वरिष्ठ हृदय रोग विशेषज्ञ',
+      phone: '+91 94500 11223',
+      alternatePhone: '0522-2612345',
+      email: 'drsanjay@sanjeevanihospital.org',
+      website: 'https://www.sanjeevanihospital.org',
+      address: 'हजरतगंज, विधान सभा मार्ग',
+      city: 'Lucknow',
+      state: 'Uttar Pradesh',
+      country: 'India',
+      notes: ''
+    },
+    rawOcrText: `संजीवनी हॉस्पिटल & रिसर्च सेंटर\nडॉ. संजय कुमार श्रीवास्तव\nवरिष्ठ हृदय रोग विशेषज्ञ\n\nहेल्पलाइन: +91 94500 11223 | 0522-2612345\nईमेल: drsanjay@sanjeevanihospital.org\nवेबसाइट: https://www.sanjeevanihospital.org\nहजरतगंज, विधान सभा मार्ग, लखनऊ, उत्तर प्रदेश 226001`
+  }
+];
+
+fs.writeFileSync(path.join(datasetDir, 'cards.json'), JSON.stringify(cards, null, 2), 'utf8');
+console.log(`✓ Generated ${cards.length} training & benchmark cards in cards.json`);

@@ -13,18 +13,20 @@ if (!fs.existsSync(LOCAL_UPLOAD_DIR)) {
 }
 
 /**
- * Upload business card image to Cloudinary (or local secure store if unconfigured)
+ * Upload business card image to Cloudinary (or local secure store if unconfigured or forceLocal)
  * 
  * @param {Buffer} buffer - Image buffer
  * @param {'front' | 'back'} side - Card side
  * @param {string} originalFilename
+ * @param {boolean} forceLocal - When true, forces strictly local filesystem storage (offline mode)
  * @returns {Promise<{publicId: string, assetId: string, secureUrl: string, isLocal: boolean}>}
  */
-async function uploadCardImage(buffer, side = 'front', originalFilename = 'card.jpg') {
+async function uploadCardImage(buffer, side = 'front', originalFilename = 'card.jpg', forceLocal = true) {
   // Normalize and auto-orient before storing
   const normalizedBuffer = await imageService.normalizeForStorage(buffer);
 
-  if (isConfigured()) {
+  // If local offline storage is enforced or Cloudinary is not configured, store locally
+  if (!forceLocal && isConfigured()) {
     try {
       logger.info(`Uploading card ${side} image to Cloudinary authenticated storage...`);
 

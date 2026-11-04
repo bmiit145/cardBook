@@ -16,7 +16,13 @@ try {
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
     });
     isConfigured = true;
-    logger.info('Google Cloud Vision API client initialized successfully.');
+    logger.info('Google Cloud Vision API client initialized successfully with service account JSON.');
+  } else if (process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+    visionClient = new vision.ImageAnnotatorClient({
+      apiKey: process.env.GOOGLE_CLOUD_VISION_API_KEY,
+    });
+    isConfigured = true;
+    logger.info('Google Cloud Vision API client initialized with API key.');
   } else if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
     visionClient = new vision.ImageAnnotatorClient({
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
@@ -24,7 +30,7 @@ try {
     isConfigured = true;
     logger.info('Google Cloud Vision API client initialized with project credentials.');
   } else {
-    logger.warn('Google Cloud Vision credentials not detected. OCR service will run in demo/fallback mode.');
+    logger.info('Google Cloud Vision credentials not found in .env. Using local live OCR engine (Tesseract).');
   }
 } catch (error) {
   logger.error('Error initializing Google Cloud Vision API', error);
@@ -35,4 +41,3 @@ module.exports = {
   getClient: () => visionClient,
   isConfigured: () => isConfigured,
 };
-

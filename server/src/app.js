@@ -38,6 +38,8 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Static local uploaded images endpoint
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/dataset-images', express.static(path.resolve(__dirname, '../data/dataset_50_cards/images')));
+app.use('/examples-images', express.static(path.resolve(__dirname, '../../examples')));
 
 // General Rate Limiter
 const apiLimiter = rateLimit({

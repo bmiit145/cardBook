@@ -60,6 +60,30 @@ export default function ContactForm({
                 required
               />
               {errors.fullName && <div className="form-error">{errors.fullName}</div>}
+              {formData.people && formData.people.length > 1 && (
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+                  <span style={{ fontWeight: 600 }}>Detected Names: </span>
+                  {formData.people.map((nm, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleChange('fullName', nm)}
+                      style={{
+                        margin: '2px 4px',
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        cursor: 'pointer',
+                        fontSize: '0.76rem',
+                      }}
+                      title="Click to select this name"
+                    >
+                      {nm}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -151,6 +175,56 @@ export default function ContactForm({
                 placeholder="e.g. https://www.example.com"
               />
             </div>
+
+            {formData.phones && formData.phones.length > 2 && (
+              <div style={{ gridColumn: 'span 2', fontSize: '0.78rem', color: '#64748b' }}>
+                <span style={{ fontWeight: 600 }}>All Detected Phones: </span>
+                {formData.phones.map((p, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleChange('alternatePhone', p)}
+                    style={{
+                      margin: '2px 4px',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      fontSize: '0.76rem',
+                    }}
+                    title="Click to set as alternate phone"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {formData.emails && formData.emails.length > 1 && (
+              <div style={{ gridColumn: 'span 2', fontSize: '0.78rem', color: '#64748b' }}>
+                <span style={{ fontWeight: 600 }}>All Detected Emails: </span>
+                {formData.emails.map((em, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleChange('email', em)}
+                    style={{
+                      margin: '2px 4px',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      fontSize: '0.76rem',
+                    }}
+                    title="Click to set as primary email"
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,6 +257,27 @@ export default function ContactForm({
                 onChange={(e) => handleChange('address', e.target.value)}
                 placeholder="e.g. 402, Titanium City Center, Prahlad Nagar"
               />
+              {formData.addresses && formData.addresses.length > 1 && (
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+                  <span style={{ fontWeight: 600 }}>Detected Address Segments: </span>
+                  {formData.addresses.map((addr, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        display: 'inline-block',
+                        margin: '2px 4px',
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.76rem',
+                      }}
+                    >
+                      {addr}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -212,7 +307,7 @@ export default function ContactForm({
               <input
                 type="text"
                 className="form-input"
-                value={formData.country || 'India'}
+                value={formData.country || ''}
                 onChange={(e) => handleChange('country', e.target.value)}
                 placeholder="e.g. India"
               />
