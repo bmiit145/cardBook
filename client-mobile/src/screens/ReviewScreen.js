@@ -2,948 +2,557 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   Alert,
+  StatusBar,
   Platform,
 } from 'react-native';
-import CardPreviewModal from '../components/CardPreviewModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import VectorIcon from '../components/VectorIcon';
 import DuplicateWarningModal from '../components/DuplicateWarningModal';
 import { contactService } from '../services/contactService';
 import { offlineQueueService } from '../services/offlineQueueService';
+import { getFullMediaUrl } from '../services/api';
 import { useNetwork } from '../context/NetworkContext';
-import { colors, radii, shadows } from '../theme/theme';
 
 export default function ReviewScreen({ route, navigation }) {
-  const { extractedData, frontPreview, backPreview } = route.params || {};
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12);
+  const { extractedData, frontPreview, backPreview, batchResults } = route.params || {};
   const { isOnline } = useNetwork();
 
-  const [formData, setFormData] = useState({
-    fullName: '',
-    company: '',
-    designation: '',
-    phone: '',
-    alternatePhone: '',
-    email: '',
-    website: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    notes: '',
-    phones: [],
-    emails: [],
-    websites: [],
-    addresses: [],
-    people: [],
-  });
-
-  const [activeCardSide, setActiveCardSide] = useState('front');
-  const [showRawText, setShowRawText] = useState(true);
+  // Normalize into an array of cards to review
+  const [cards, setCards] = useState([]);
+  const [selectedIndices, setSelectedIndices] = useState(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   // Duplicate warning modal state
   const [duplicateMatches, setDuplicateMatches] = useState([]);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
 
-  // Native phone contacts save status
-  const [isSavingToPhone, setIsSavingToPhone] = useState(false);
-  const [phoneSaveResult, setPhoneSaveResult] = useState('');
-
   useEffect(() => {
-    if (!extractedData) {
-      navigation.navigate('ScanTab');
+    if (batchResults && Array.isArray(batchResults) && batchResults.length > 0) {
+      const initialCards = batchResults.map((item, idx) => ({
+        id: `batch-${idx}`,
+        fullName: item.extractedFields?.fullName || item.fullName || 'Scanned Contact',
+        company: item.extractedFields?.company || item.company || '',
+        designation: item.extractedFields?.designation || item.designation || '',
+        email: item.extractedFields?.email || item.email || '',
+        phone: item.extractedFields?.phone || item.phone || '',
+        alternatePhone: item.extractedFields?.alternatePhone || item.alternatePhone || '',
+        website: item.extractedFields?.website || item.website || '',
+        address: item.extractedFields?.address || item.address || '',
+        notes: item.extractedFields?.notes || item.notes || '',
+        tags: item.extractedFields?.tags || ['Client'],
+        frontPreview: item.frontPreview || null,
+        backPreview: item.backPreview || null,
+        rawOcrText: item.rawText || '',
+        uploadedImages: item.uploadedImages || [],
+      }));
+      setCards(initialCards);
+      setSelectedIndices(new Set(initialCards.map((_, i) => i)));
+    } else if (extractedData) {
+      const fields = extractedData.extractedFields || {};
+      const singleCard = {
+        id: 'single-0',
+        fullName: fields.fullName || 'Scanned Contact',
+        company: fields.company || '',
+        designation: fields.designation || '',
+        email: fields.email || '',
+        phone: fields.phone || '',
+        alternatePhone: fields.alternatePhone || '',
+        website: fields.website || '',
+        address: fields.address || '',
+        notes: fields.notes || '',
+        tags: fields.tags || ['Client'],
+        frontPreview: frontPreview || null,
+        backPreview: backPreview || null,
+        rawOcrText: extractedData.rawText || '',
+        uploadedImages: extractedData.uploadedImages || [],
+      };
+      setCards([singleCard]);
+      setSelectedIndices(new Set([0]));
+    } else {
+      navigation.navigate('Main');
+    }
+  }, [extractedData, frontPreview, backPreview, batchResults, navigation]);
+
+  const toggleSelectCard = (index) => {
+    const nextSelected = new Set(selectedIndices);
+    if (nextSelected.has(index)) {
+      nextSelected.delete(index);
+    } else {
+      nextSelected.add(index);
+    }
+    setSelectedIndices(nextSelected);
+  };
+
+  const handleEditCard = (index) => {
+    const card = cards[index];
+    navigation.navigate('EditContactScreen', {
+      initialData: card,
+      onSaveCallback: (updatedFields) => {
+        setCards((prev) => {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], ...updatedFields };
+          return updated;
+        });
+      },
+    });
+  };
+
+  const handleSaveSelected = async () => {
+    const selectedCards = cards.filter((_, idx) => selectedIndices.has(idx));
+    if (selectedCards.length === 0) {
+      Alert.alert('No Cards Selected', 'Please select at least one contact to save.');
       return;
     }
 
-    if (extractedData.extractedFields) {
-      setFormData((prev) => ({
-        ...prev,
-        ...extractedData.extractedFields,
-      }));
-    }
-  }, [extractedData, navigation]);
-
-  const rawOcrText = extractedData?.rawText || '';
-  const confidence =
-    extractedData?.confidence || extractedData?.extractedFields?.confidence || 0;
-  const needsReview = Boolean(
-    extractedData?.needsReview ||
-      extractedData?.extractedFields?.needsReview ||
-      confidence < 60
-  );
-  const reviewReasons =
-    extractedData?.reviewReasons ||
-    extractedData?.extractedFields?.reviewReasons ||
-    [];
-
-  const currentPreview = activeCardSide === 'front' ? frontPreview : backPreview;
-
-  const validate = () => {
-    const errs = {};
-    if (!formData.fullName || !formData.fullName.trim()) {
-      errs.fullName = 'Full Name is required';
-    }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSaveAttempt = async () => {
-    if (!validate()) return;
-
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
+      let savedCount = 0;
 
-      // Check duplicates first
-      const dupRes = await contactService.checkDuplicate({
-        fullName: formData.fullName,
-        company: formData.company,
-        phone: formData.phone,
-        email: formData.email,
-      });
+      for (const card of selectedCards) {
+        const uploadedImages = card.uploadedImages || [];
+        const frontImg = uploadedImages.find((img) => img.side === 'FRONT');
+        const backImg = uploadedImages.find((img) => img.side === 'BACK');
 
-      if (dupRes?.data?.isDuplicate && dupRes.data.duplicates?.length > 0) {
-        setDuplicateMatches(dupRes.data.duplicates);
-        setIsDuplicateModalOpen(true);
-        setIsSubmitting(false);
-        return;
+        const payload = {
+          fullName: card.fullName || 'Scanned Contact',
+          company: card.company || '',
+          designation: card.designation || '',
+          phone: card.phone || '',
+          alternatePhone: card.alternatePhone || '',
+          email: card.email || '',
+          website: card.website || '',
+          address: card.address || '',
+          notes: card.notes || '',
+          tags: card.tags || [],
+          frontImagePublicId: frontImg?.publicId || null,
+          frontImageSecureUrl: frontImg?.secureUrl || card.frontPreview || null,
+          backImagePublicId: backImg?.publicId || null,
+          backImageSecureUrl: backImg?.secureUrl || card.backPreview || null,
+          originalOcrText: card.rawOcrText || '',
+        };
+
+        if (!isOnline) {
+          await offlineQueueService.enqueueContact({
+            formData: payload,
+            frontPreview: card.frontPreview,
+            backPreview: card.backPreview,
+            originalOcrText: card.rawOcrText,
+          });
+          savedCount++;
+        } else {
+          try {
+            await contactService.createContact(payload);
+            savedCount++;
+          } catch (e) {
+            console.warn('API save failed, enqueueing offline:', e.message);
+            await offlineQueueService.enqueueContact({
+              formData: payload,
+              frontPreview: card.frontPreview,
+              backPreview: card.backPreview,
+              originalOcrText: card.rawOcrText,
+            });
+            savedCount++;
+          }
+        }
+
+        // Auto-save to phone contacts address book
+        try {
+          await offlineQueueService.saveToPhoneContacts(payload);
+        } catch (phoneErr) {
+          console.warn('Phone address book save skipped:', phoneErr);
+        }
       }
-
-      await commitContactSave();
-    } catch (err) {
-      console.error('Error during pre-save duplicate check:', err);
-      // Fallback save anyway
-      await commitContactSave();
-    }
-  };
-
-  const commitContactSave = async () => {
-    try {
-      setIsSubmitting(true);
-      const uploadedImages = extractedData?.uploadedImages || [];
-      const frontImg = uploadedImages.find((img) => img.side === 'FRONT');
-      const backImg = uploadedImages.find((img) => img.side === 'BACK');
-
-      const payload = {
-        ...formData,
-        frontImagePublicId: frontImg?.publicId || null,
-        frontImageSecureUrl: frontImg?.secureUrl || frontPreview || null,
-        backImagePublicId: backImg?.publicId || null,
-        backImageSecureUrl: backImg?.secureUrl || backPreview || null,
-        originalOcrText: rawOcrText,
-      };
-
-      if (!isOnline) {
-        // Enqueue directly to offline queue & phone contacts
-        await offlineQueueService.enqueueContact({
-          formData,
-          frontPreview,
-          backPreview,
-          originalOcrText: rawOcrText,
-        });
-        setIsDuplicateModalOpen(false);
-        Alert.alert(
-          'Saved to Offline Queue ⚡',
-          'Contact saved locally to your device and added to phone contacts! It will auto-sync to Google Sheets and the database when internet is reconnected.',
-          [{ text: 'OK', onPress: () => navigation.navigate('ContactsTab') }]
-        );
-        return;
-      }
-
-      await contactService.createContact(payload);
-      setIsDuplicateModalOpen(false);
 
       Alert.alert(
-        'Success',
-        'Contact saved and enqueued for Google Sheets synchronization!',
+        'Contacts Saved',
+        `${savedCount} contact${savedCount > 1 ? 's' : ''} successfully saved and synced to your address book!`,
         [
           {
-            text: 'OK',
-            onPress: () => navigation.navigate('ContactsTab'),
+            text: 'View Contacts',
+            onPress: () => navigation.navigate('Main', { screen: 'ContactsTab' }),
           },
         ]
       );
     } catch (err) {
-      console.warn('Network save failed, saving to offline queue:', err.message);
-      try {
-        await offlineQueueService.enqueueContact({
-          formData,
-          frontPreview,
-          backPreview,
-          originalOcrText: rawOcrText,
-        });
-        setIsDuplicateModalOpen(false);
-        Alert.alert(
-          'Saved to Offline Queue ⚡',
-          'Server was unreachable. Contact saved locally on your device and enqueued for automatic sync when reconnected.',
-          [{ text: 'OK', onPress: () => navigation.navigate('ContactsTab') }]
-        );
-      } catch (queueErr) {
-        Alert.alert('Save Failed', queueErr.message);
-      }
+      console.warn('Save error:', err);
+      Alert.alert('Save Failed', 'Could not complete save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSaveToDeviceContacts = async () => {
-    setIsSavingToPhone(true);
-    setPhoneSaveResult('');
-    const res = await contactService.saveToPhoneAddressBook(formData);
-    setIsSavingToPhone(false);
-    if (res.success) {
-      setPhoneSaveResult('✓ Saved to phone contacts!');
-    } else {
-      setPhoneSaveResult(res.message);
-    }
+  const handleClose = () => {
+    Alert.alert(
+      'Discard Contacts?',
+      'Are you sure you want to discard these scanned contacts without saving?',
+      [
+        { text: 'Keep Reviewing', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => navigation.navigate('Main'),
+        },
+      ]
+    );
   };
 
+  const selectedCount = selectedIndices.size;
+  const totalCount = cards.length;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Top Navigation */}
-      <View style={styles.topBar}>
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFD300" />
+
+      {/* Solid Vibrant Yellow Top Header */}
+      <View style={[styles.header, { paddingTop: topInset, height: 56 + topInset }]}>
         <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.navigate('ScanTab')}
+          style={styles.headerBtn}
+          onPress={handleClose}
           activeOpacity={0.7}
+          accessibilityLabel="Close"
         >
-          <Text style={styles.backBtnText}>← Back to Scanner</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Screen Title */}
-      <View style={styles.titleBlock}>
-        <Text style={styles.title}>Review & Confirm Extracted Contact</Text>
-        <Text style={styles.subtitle}>
-          Verify and edit the fields recognized from the card. The original card photo is
-          displayed below.
-        </Text>
-      </View>
-
-      {/* Manual Review Alert Banner */}
-      {needsReview ? (
-        <View style={styles.reviewBanner}>
-          <Text style={styles.reviewBannerEmoji}>⚠️</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.reviewBannerHeading}>
-              Manual Review Recommended{' '}
-              {confidence > 0 ? `(OCR Confidence: ${confidence}%)` : ''}
-            </Text>
-            <Text style={styles.reviewBannerSub}>
-              Please verify extracted fields against the raw OCR text and photo:
-            </Text>
-            {reviewReasons.map((reason, idx) => (
-              <Text key={idx} style={styles.reviewReasonBullet}>
-                • {reason}
-              </Text>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Card Photo Preview Section */}
-      <View style={styles.previewCard}>
-        <View style={styles.previewHeaderRow}>
-          <Text style={styles.previewHeading}>Original Business Card Photo</Text>
-          {backPreview ? (
-            <View style={styles.sideButtonsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.sideToggleBtn,
-                  activeCardSide === 'front' && styles.sideToggleBtnActive,
-                ]}
-                onPress={() => setActiveCardSide('front')}
-              >
-                <Text
-                  style={[
-                    styles.sideToggleText,
-                    activeCardSide === 'front' && styles.sideToggleTextActive,
-                  ]}
-                >
-                  Front
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.sideToggleBtn,
-                  activeCardSide === 'back' && styles.sideToggleBtnActive,
-                ]}
-                onPress={() => setActiveCardSide('back')}
-              >
-                <Text
-                  style={[
-                    styles.sideToggleText,
-                    activeCardSide === 'back' && styles.sideToggleTextActive,
-                  ]}
-                >
-                  Back
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.imageBox}>
-          {currentPreview ? (
-            <>
-              <Image
-                source={{ uri: currentPreview }}
-                style={styles.cardImage}
-                resizeMode="contain"
-              />
-              <TouchableOpacity
-                style={styles.fullViewBtn}
-                onPress={() => setIsZoomOpen(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.fullViewBtnText}>🔍 Full View</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Text style={styles.noImageText}>No image available for this side</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Raw OCR Text Collapsible Box */}
-      <View style={styles.rawOcrCard}>
-        <TouchableOpacity
-          style={styles.rawOcrHeader}
-          onPress={() => setShowRawText(!showRawText)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.rawOcrLeft}>
-            <Text style={styles.rawOcrEmoji}>📄</Text>
-            <Text style={styles.rawOcrTitle}>
-              Raw OCR Text Recognized ({rawOcrText.length} characters)
-            </Text>
-          </View>
-          <Text style={styles.rawOcrArrow}>{showRawText ? '▲' : '▼'}</Text>
+          <VectorIcon name="close" size={22} color="#000000" />
         </TouchableOpacity>
 
-        {showRawText ? (
-          <ScrollView style={styles.rawOcrTextBox} nestedScrollEnabled>
-            <Text style={styles.rawOcrContent}>
-              {rawOcrText || 'No raw text recognized.'}
-            </Text>
-          </ScrollView>
-        ) : null}
+        <Text style={styles.headerTitle}>Review Contacts</Text>
+
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Editable Contact Form */}
-      <View style={styles.formCard}>
-        {/* Section 1: Identity */}
-        <View style={styles.formSection}>
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionEmoji}>👤</Text>
-            <Text style={styles.sectionHeading}>Personal & Company Information</Text>
-          </View>
+      {/* Main Card List */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {cards.map((card, idx) => {
+          const isSelected = selectedIndices.has(idx);
+          const previewUri = card.frontPreview ? getFullMediaUrl(card.frontPreview) : null;
 
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>
-              Full Name <Text style={{ color: colors.danger }}>*</Text>
-            </Text>
-            <TextInput
-              style={[styles.formInput, errors.fullName && styles.formInputError]}
-              value={formData.fullName}
-              onChangeText={(val) => setFormData({ ...formData, fullName: val })}
-              placeholder="e.g. Harmish Patel"
-              placeholderTextColor={colors.textMuted}
-            />
-            {errors.fullName ? (
-              <Text style={styles.formErrorText}>{errors.fullName}</Text>
-            ) : null}
-
-            {formData.people && formData.people.length > 1 ? (
-              <View style={styles.suggestionsBox}>
-                <Text style={styles.suggestionsTitle}>Detected Names:</Text>
-                <View style={styles.suggestionPillsRow}>
-                  {formData.people.map((nm, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.suggestionPill}
-                      onPress={() => setFormData({ ...formData, fullName: nm })}
-                    >
-                      <Text style={styles.suggestionPillText}>{nm}</Text>
-                    </TouchableOpacity>
-                  ))}
+          return (
+            <View
+              key={card.id || idx}
+              style={[
+                styles.cardItem,
+                isSelected ? styles.cardItemSelected : styles.cardItemUnselected,
+              ]}
+            >
+              {/* Main Content Row */}
+              <View style={styles.cardMainRow}>
+                {/* Left Card Photo Thumbnail */}
+                <View style={styles.thumbnailBox}>
+                  {previewUri ? (
+                    <Image
+                      source={{ uri: previewUri }}
+                      style={styles.thumbnailImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.thumbnailPlaceholder}>
+                      <VectorIcon name="camera" size={24} color="#CA8A04" />
+                    </View>
+                  )}
                 </View>
-              </View>
-            ) : null}
-          </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Company Name</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.company}
-              onChangeText={(val) => setFormData({ ...formData, company: val })}
-              placeholder="e.g. Spirit Infotech Pvt Ltd"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
+                {/* Center Contact Details */}
+                <View style={styles.cardDetails}>
+                  <Text style={styles.contactName} numberOfLines={1}>
+                    {card.fullName || 'Unnamed Contact'}
+                  </Text>
+                  
+                  {card.company ? (
+                    <Text style={styles.contactCompany} numberOfLines={1}>
+                      {card.company}
+                    </Text>
+                  ) : card.designation ? (
+                    <Text style={styles.contactCompany} numberOfLines={1}>
+                      {card.designation}
+                    </Text>
+                  ) : null}
 
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Designation / Title</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.designation}
-              onChangeText={(val) => setFormData({ ...formData, designation: val })}
-              placeholder="e.g. Chief Technology Officer"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-        </View>
+                  {card.email ? (
+                    <Text style={styles.contactSub} numberOfLines={1}>
+                      {card.email}
+                    </Text>
+                  ) : null}
 
-        {/* Section 2: Communication Details */}
-        <View style={styles.formSection}>
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionEmoji}>📞</Text>
-            <Text style={styles.sectionHeading}>Communication Details</Text>
-          </View>
+                  {card.phone ? (
+                    <Text style={styles.contactSub} numberOfLines={1}>
+                      {card.phone}
+                    </Text>
+                  ) : null}
+                </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Mobile Number</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.phone}
-              onChangeText={(val) => setFormData({ ...formData, phone: val })}
-              placeholder="e.g. +91 98765 43210"
-              keyboardType="phone-pad"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Alternate Phone / Landline</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.alternatePhone}
-              onChangeText={(val) => setFormData({ ...formData, alternatePhone: val })}
-              placeholder="e.g. +91 261 2456789"
-              keyboardType="phone-pad"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-
-          {formData.phones && formData.phones.length > 2 ? (
-            <View style={styles.suggestionsBox}>
-              <Text style={styles.suggestionsTitle}>All Detected Phone Numbers:</Text>
-              <View style={styles.suggestionPillsRow}>
-                {formData.phones.map((p, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.suggestionPill}
-                    onPress={() => setFormData({ ...formData, alternatePhone: p })}
+                {/* Right Selection Checkmark Badge */}
+                <TouchableOpacity
+                  style={styles.checkTouchArea}
+                  onPress={() => toggleSelectCard(idx)}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Toggle Selection"
+                >
+                  <View
+                    style={[
+                      styles.checkCircle,
+                      isSelected ? styles.checkCircleSelected : styles.checkCircleUnselected,
+                    ]}
                   >
-                    <Text style={styles.suggestionPillText}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
+                    {isSelected ? (
+                      <VectorIcon name="check" size={14} color="#000000" strokeWidth={3} />
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Bottom Action Row: Edit Button */}
+              <View style={styles.cardFooterRow}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => handleEditCard(idx)}
+                  activeOpacity={0.8}
+                >
+                  <VectorIcon name="edit" size={13} color="#000000" />
+                  <Text style={styles.editBtnText}>Edit</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          ) : null}
+          );
+        })}
+      </ScrollView>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Email Address</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.email}
-              onChangeText={(val) => setFormData({ ...formData, email: val })}
-              placeholder="e.g. harmish@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
+      {/* Bottom Fixed Action Deck */}
+      <View style={[styles.bottomDeck, { paddingBottom: bottomInset + 10 }]}>
+        <Text style={styles.selectionCountText}>
+          {selectedCount} of {totalCount} selected
+        </Text>
 
-          {formData.emails && formData.emails.length > 1 ? (
-            <View style={styles.suggestionsBox}>
-              <Text style={styles.suggestionsTitle}>All Detected Emails:</Text>
-              <View style={styles.suggestionPillsRow}>
-                {formData.emails.map((em, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.suggestionPill}
-                    onPress={() => setFormData({ ...formData, email: em })}
-                  >
-                    <Text style={styles.suggestionPillText}>{em}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Website</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.website}
-              onChangeText={(val) => setFormData({ ...formData, website: val })}
-              placeholder="e.g. https://www.example.com"
-              autoCapitalize="none"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-        </View>
-
-        {/* Section 3: Address & Location */}
-        <View style={styles.formSection}>
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionEmoji}>📍</Text>
-            <Text style={styles.sectionHeading}>Address & Location</Text>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Street Address / Suite</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.address}
-              onChangeText={(val) => setFormData({ ...formData, address: val })}
-              placeholder="e.g. 402, Titanium City Center, Prahlad Nagar"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-
-          <View style={styles.rowTwoCols}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.formLabel}>City</Text>
-              <TextInput
-                style={styles.formInput}
-                value={formData.city}
-                onChangeText={(val) => setFormData({ ...formData, city: val })}
-                placeholder="Ahmedabad"
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
-
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.formLabel}>State</Text>
-              <TextInput
-                style={styles.formInput}
-                value={formData.state}
-                onChangeText={(val) => setFormData({ ...formData, state: val })}
-                placeholder="Gujarat"
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Country</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.country}
-              onChangeText={(val) => setFormData({ ...formData, country: val })}
-              placeholder="India"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-        </View>
-
-        {/* Section 4: Notes */}
-        <View style={styles.formSection}>
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionEmoji}>📝</Text>
-            <Text style={styles.sectionHeading}>Notes & Social Media</Text>
-          </View>
-
-          <View style={styles.formGroup}>
-            <TextInput
-              style={[styles.formInput, styles.textArea]}
-              value={formData.notes}
-              onChangeText={(val) => setFormData({ ...formData, notes: val })}
-              placeholder="e.g. Met at Tech Expo 2026. LinkedIn: linkedin.com/in/harmish"
-              multiline
-              numberOfLines={3}
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-        </View>
-
-        {/* Mobile Extra: Save to Phone Contacts */}
-        <View style={styles.phoneSaveBox}>
-          <TouchableOpacity
-            style={styles.phoneSaveBtn}
-            onPress={handleSaveToDeviceContacts}
-            disabled={isSavingToPhone}
-            activeOpacity={0.8}
-          >
-            {isSavingToPhone ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Text style={styles.phoneSaveBtnText}>📱 Save to Phone Address Book</Text>
-            )}
-          </TouchableOpacity>
-          {phoneSaveResult ? (
-            <Text style={styles.phoneSaveResultText}>{phoneSaveResult}</Text>
-          ) : null}
-        </View>
-
-        {/* Submit Button */}
         <TouchableOpacity
-          style={[styles.saveBtn, isSubmitting && styles.saveBtnDisabled]}
-          onPress={handleSaveAttempt}
-          disabled={isSubmitting}
+          style={styles.saveSelectedBtn}
+          onPress={handleSaveSelected}
+          disabled={isSubmitting || selectedCount === 0}
           activeOpacity={0.85}
         >
           {isSubmitting ? (
-            <View style={styles.btnRow}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Saving Contact...</Text>
-            </View>
+            <ActivityIndicator size="small" color="#000000" />
           ) : (
-            <View style={styles.btnRow}>
-              <Text style={styles.saveBtnText}>✓ Save Contact & Sync</Text>
+            <View style={styles.btnInnerRow}>
+              <VectorIcon name="save" size={18} color="#000000" />
+              <Text style={styles.saveSelectedBtnText}>Save Selected</Text>
             </View>
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Zoom Modal */}
-      <CardPreviewModal
-        visible={isZoomOpen}
-        imageUrl={currentPreview}
-        title={`${activeCardSide === 'front' ? 'Front' : 'Back'} Card Full View`}
-        onClose={() => setIsZoomOpen(false)}
-      />
-
-      {/* Duplicate Warning Dialog */}
-      <DuplicateWarningModal
-        isOpen={isDuplicateModalOpen}
-        duplicates={duplicateMatches}
-        onProceed={commitContactSave}
-        onCancel={() => setIsDuplicateModalOpen(false)}
-      />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: colors.bgMain,
+    backgroundColor: '#FFD300',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  topBar: {
-    flexDirection: 'row',
-  },
-  backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-  },
-  backBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  titleBlock: {
-    gap: 4,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 17,
-  },
-  reviewBanner: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colors.warningLight,
-    borderWidth: 1,
-    borderColor: colors.warningBorder,
-    borderRadius: radii.md,
-    padding: 14,
-  },
-  reviewBannerEmoji: {
-    fontSize: 18,
-  },
-  reviewBannerHeading: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.warningDark,
-  },
-  reviewBannerSub: {
-    fontSize: 11,
-    color: colors.warningDark,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  reviewReasonBullet: {
-    fontSize: 11,
-    color: colors.warningDark,
-  },
-  previewCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    gap: 12,
-    ...shadows.sm,
-  },
-  previewHeaderRow: {
+  header: {
+    height: 56,
+    backgroundColor: '#FFD300',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
-  previewHeading: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  sideButtonsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  sideToggleBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgCard,
-  },
-  sideToggleBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  sideToggleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  sideToggleTextActive: {
-    color: '#FFFFFF',
-  },
-  imageBox: {
-    backgroundColor: '#0F172A',
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    height: 200,
+  headerBtn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  cardImage: {
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: -0.2,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 110,
+  },
+
+  /* Card Item */
+  cardItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardItemSelected: {
+    borderColor: '#FFD300',
+  },
+  cardItemUnselected: {
+    borderColor: '#E5E7EB',
+  },
+  cardMainRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  thumbnailBox: {
+    width: 82,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailImage: {
     width: '100%',
     height: '100%',
   },
-  fullViewBtn: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radii.sm,
-  },
-  fullViewBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  noImageText: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  rawOcrCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    gap: 10,
-    ...shadows.sm,
-  },
-  rawOcrHeader: {
-    flexDirection: 'row',
+  thumbnailPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFF8D6',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
-  rawOcrLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  cardDetails: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
   },
-  rawOcrEmoji: {
-    fontSize: 16,
-  },
-  rawOcrTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  rawOcrArrow: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  rawOcrTextBox: {
-    maxHeight: 140,
-    backgroundColor: colors.bgSubtle,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 10,
-  },
-  rawOcrContent: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    lineHeight: 16,
-  },
-  formCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    gap: 20,
-    ...shadows.sm,
-  },
-  formSection: {
-    gap: 12,
-  },
-  sectionHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.bgSubtle,
-    paddingBottom: 8,
-  },
-  sectionEmoji: {
-    fontSize: 14,
-  },
-  sectionHeading: {
-    fontSize: 12,
+  contactName: {
+    fontSize: 15,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    color: colors.textSecondary,
-    letterSpacing: 0.5,
+    color: '#111827',
+    marginBottom: 2,
   },
-  formGroup: {
-    gap: 5,
-  },
-  formLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+  contactCompany: {
     fontSize: 13,
-    color: colors.textPrimary,
-    backgroundColor: '#FFFFFF',
-  },
-  formInputError: {
-    borderColor: colors.danger,
-  },
-  formErrorText: {
-    fontSize: 11,
-    color: colors.danger,
-  },
-  textArea: {
-    height: 70,
-    textAlignVertical: 'top',
-  },
-  rowTwoCols: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  suggestionsBox: {
-    gap: 4,
-    marginTop: 4,
-  },
-  suggestionsTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  suggestionPillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  suggestionPill: {
-    backgroundColor: colors.bgSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  suggestionPillText: {
-    fontSize: 11,
-    color: colors.textPrimary,
     fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 2,
   },
-  phoneSaveBox: {
-    gap: 6,
+  contactSub: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 1,
+  },
+
+  /* Checkmark Circle */
+  checkTouchArea: {
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircleSelected: {
+    backgroundColor: '#FFD300',
+  },
+  checkCircleUnselected: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+  },
+
+  /* Card Footer Row */
+  cardFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.bgSubtle,
+    borderTopColor: '#F3F4F6',
   },
-  phoneSaveBtn: {
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8D6',
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    backgroundColor: colors.primaryLight,
-    paddingVertical: 10,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: '#FEEAA3',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 4,
   },
-  phoneSaveBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  phoneSaveResultText: {
+  editBtnText: {
     fontSize: 12,
-    color: colors.successDark,
-    textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#000000',
   },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingVertical: 14,
+
+  /* Bottom Deck */
+  bottomDeck: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  selectionCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 10,
+  },
+  saveSelectedBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFD300',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  saveBtnDisabled: {
-    opacity: 0.65,
-  },
-  btnRow: {
+  btnInnerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  saveBtnText: {
-    color: colors.textWhite,
+  saveSelectedBtnText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#000000',
   },
 });

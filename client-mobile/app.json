@@ -1,28 +1,28 @@
 {
   "expo": {
-    "name": "CardScan AI",
-    "slug": "cardscan-ai",
+    "name": "CardBook - Business Card Scanner",
+    "slug": "cardbook-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#2563EB",
+      "backgroundColor": "#FFD300",
       "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cardscan.ai",
+      "bundleIdentifier": "com.cardbook.ai",
       "infoPlist": {
-        "NSCameraUsageDescription": "CardScan AI needs access to your camera to scan business cards.",
-        "NSPhotoLibraryUsageDescription": "CardScan AI needs access to your photos to import business card images.",
-        "NSContactsUsageDescription": "CardScan AI needs access to contacts to save scanned business cards to your device address book."
+        "NSCameraUsageDescription": "CardBook needs access to your camera to scan business cards.",
+        "NSPhotoLibraryUsageDescription": "CardBook needs access to your photos to import business card images.",
+        "NSContactsUsageDescription": "CardBook needs access to contacts to save scanned business cards to your device address book."
       }
     },
     "android": {
-      "package": "com.cardscan.ai",
+      "package": "com.cardbook.ai",
       "adaptiveIcon": {
-        "backgroundColor": "#2563EB",
+        "backgroundColor": "#FFD300",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

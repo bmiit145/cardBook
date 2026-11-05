@@ -145,7 +145,7 @@ export default function ContactReview() {
       };
 
       await contactService.createContact(payload);
-      navigate('/contacts', { state: { successMessage: 'Contact saved and enqueued for Google Sheets sync!' } });
+      navigate('/contacts', { state: { successMessage: 'Contact saved successfully to database!' } });
     } catch (err) {
       console.error('Failed to save contact', err);
       const msg = err.response?.data?.message || err.message || 'Error saving contact';

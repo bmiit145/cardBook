@@ -2,61 +2,67 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   Alert,
+  StatusBar,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import AppLayout from '../components/AppLayout';
+import VectorIcon from '../components/VectorIcon';
+import AuthGateModal from '../components/AuthGateModal';
 import { scanService } from '../services/scanService';
 import { onDeviceOcrService } from '../services/onDeviceOcrService';
-import { getBaseApiUrl } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useNetwork } from '../context/NetworkContext';
-import { colors, radii, shadows } from '../theme/theme';
 
 export default function ScanScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 10);
+  const { isAuthenticated } = useAuth();
   const { isOnline } = useNetwork();
-  const [isDoubleSided, setIsDoubleSided] = useState(false);
-  const [activeSide, setActiveSide] = useState('front'); // 'front' | 'back'
 
-  const [frontImageUri, setFrontImageUri] = useState(null);
-  const [backImageUri, setBackImageUri] = useState(null);
-
+  const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
+  const [isBatchMode, setIsBatchMode] = useState(false); // Single Card vs Multiple Cards
+  const [flashOn, setFlashOn] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState([]); // Array of { uri, title }
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState('');
-
-  // Sample cards testing suite
-  const [sampleMode, setSampleMode] = useState('examples'); // 'examples' | 'benchmark'
-  const [exampleCards, setExampleCards] = useState([]);
-  const [benchmarkCards, setBenchmarkCards] = useState([]);
-  const [selectedCardTitle, setSelectedCardTitle] = useState('');
-  const [isSampleListOpen, setIsSampleListOpen] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
+  const [showSamplesModal, setShowSamplesModal] = useState(false);
+  const [sampleCards, setSampleCards] = useState([]);
 
   useEffect(() => {
+    // Load sample cards for quick testing
     scanService
       .getExamplesCards()
       .then((res) => {
-        if (res?.data) setExampleCards(res.data);
+        if (res?.data && Array.isArray(res.data)) {
+          setSampleCards(res.data);
+        }
       })
-      .catch((err) => console.warn('Could not load example cards:', err));
-
-    scanService
-      .getBenchmarkCards()
-      .then((res) => {
-        if (res?.data) setBenchmarkCards(res.data);
-      })
-      .catch((err) => console.warn('Could not load benchmark cards:', err));
+      .catch(() => {});
   }, []);
 
+  const ensureAuthenticated = () => {
+    if (!isAuthenticated) {
+      navigation.navigate('Login', { returnTo: 'ScanTab', reason: 'scan' });
+      return false;
+    }
+    return true;
+  };
+
   const takePhotoWithCamera = async () => {
+    if (!ensureAuthenticated()) return;
+
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Needed', 'Camera access is required to photograph business cards.');
+        Alert.alert('Camera Permission Required', 'Please enable camera access to scan business cards.');
         return;
       }
 
@@ -68,836 +74,587 @@ export default function ScanScreen({ navigation }) {
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const uri = result.assets[0].uri;
-        if (activeSide === 'front') {
-          setFrontImageUri(uri);
-          if (isDoubleSided && !backImageUri) {
-            setActiveSide('back');
-          }
-        } else {
-          setBackImageUri(uri);
-        }
-        setError('');
+        handlePhotoCaptured(uri);
       }
     } catch (err) {
-      console.error('Camera error:', err);
-      setError('Could not open camera.');
+      console.warn('Camera error:', err);
+      Alert.alert('Camera Error', 'Could not open camera on this device.');
     }
   };
 
   const pickFromGallery = async () => {
+    if (!ensureAuthenticated()) return;
+
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Needed', 'Photo library access is required to select card photos.');
+        Alert.alert('Photo Library Permission Required', 'Please grant photo library access.');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsMultipleSelection: isBatchMode,
         quality: 0.9,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const uri = result.assets[0].uri;
-        if (activeSide === 'front') {
-          setFrontImageUri(uri);
-          if (isDoubleSided && !backImageUri) {
-            setActiveSide('back');
-          }
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        if (isBatchMode) {
+          const newUris = result.assets.map((a) => ({ uri: a.uri }));
+          setCapturedPhotos((prev) => [...prev, ...newUris]);
         } else {
-          setBackImageUri(uri);
+          handlePhotoCaptured(result.assets[0].uri);
         }
-        setError('');
       }
     } catch (err) {
-      console.error('Gallery picker error:', err);
-      setError('Could not pick photo from gallery.');
+      console.warn('Gallery error:', err);
+      Alert.alert('Gallery Error', 'Could not select photo from gallery.');
     }
   };
 
-  const handleSelectSampleCard = async (card) => {
-    setIsSampleListOpen(false);
-    setSelectedCardTitle(card.title);
-    setError('');
-
-    try {
-      const baseApi = await getBaseApiUrl();
-      // Derive server origin from baseApi (strip /api/v1)
-      const serverOrigin = baseApi.replace(/\/api\/v1\/?$/, '');
-
-      let imgUrl = '';
-      if (sampleMode === 'examples') {
-        imgUrl = `${serverOrigin}/examples-images/${card.filename}`;
-      } else {
-        imgUrl = `${serverOrigin}/dataset-images/card_${String(card.id).padStart(2, '0')}.png`;
-      }
-
-      setFrontImageUri(imgUrl);
-    } catch (err) {
-      console.error('Error loading sample card image:', err);
-      setError('Could not load sample card image from server.');
+  const handleSelectSample = (sample) => {
+    setShowSamplesModal(false);
+    if (isBatchMode) {
+      setCapturedPhotos((prev) => [
+        ...prev,
+        { uri: sample.url, title: sample.title, isSample: true },
+      ]);
+    } else {
+      processOcr([sample.url]);
     }
   };
 
-  const handleProcessOcr = async () => {
-    if (!frontImageUri) {
-      setError('Please capture or choose a photo of the card front.');
-      return;
+  const handlePhotoCaptured = (uri) => {
+    if (isBatchMode) {
+      setCapturedPhotos((prev) => [...prev, { uri }]);
+    } else {
+      processOcr([uri]);
     }
+  };
 
-    setError('');
+  const processOcr = async (urisToProcess) => {
+    if (!urisToProcess || urisToProcess.length === 0) return;
+
     setIsProcessing(true);
-
-    if (!isOnline) {
-      try {
-        // Run On-Device OCR directly on the phone processor (Zero Internet & Zero Backend)
-        const onDeviceResult = await onDeviceOcrService.processCardOnDevice(frontImageUri);
-        navigation.navigate('ReviewScreen', {
-          extractedData: onDeviceResult,
-          frontPreview: frontImageUri,
-          backPreview: backImageUri,
-        });
-      } catch (err) {
-        console.warn('On-device OCR fallback:', err);
-        navigation.navigate('ReviewScreen', {
-          extractedData: {
-            extractedFields: {},
-            rawText: '',
-            confidence: 0,
-            needsReview: true,
-          },
-          frontPreview: frontImageUri,
-          backPreview: backImageUri,
-        });
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
+    setProcessingStatus('Extracting contact details...');
 
     try {
-      const response = await scanService.processOcr({
-        frontUri: frontImageUri,
-        backUri: isDoubleSided ? backImageUri : null,
-      });
+      if (urisToProcess.length === 1) {
+        const singleUri = urisToProcess[0];
 
-      if (response?.data) {
-        const frontImgUrl =
-          response.data?.uploadedImages?.find((i) => i.side === 'FRONT')?.secureUrl ||
-          frontImageUri;
-        const backImgUrl =
-          response.data?.uploadedImages?.find((i) => i.side === 'BACK')?.secureUrl ||
-          backImageUri;
+        if (!isOnline) {
+          // Offline local extraction
+          const localResult = await onDeviceOcrService.processImageUri(singleUri);
+          navigation.navigate('ReviewScreen', {
+            extractedData: localResult,
+            frontPreview: singleUri,
+            backPreview: null,
+          });
+          return;
+        }
 
+        // Online backend processing
+        const res = await scanService.scanSingleCard(singleUri);
+        if (res?.data) {
+          navigation.navigate('ReviewScreen', {
+            extractedData: res.data,
+            frontPreview: singleUri,
+            backPreview: null,
+          });
+        }
+      } else {
+        // Multi-card batch processing
+        const batchResults = [];
+        for (let i = 0; i < urisToProcess.length; i++) {
+          setProcessingStatus(`Processing card ${i + 1} of ${urisToProcess.length}...`);
+          const uri = urisToProcess[i];
+          try {
+            if (isOnline) {
+              const res = await scanService.scanSingleCard(uri);
+              if (res?.data) {
+                batchResults.push({
+                  ...res.data,
+                  frontPreview: uri,
+                });
+              }
+            } else {
+              const localResult = await onDeviceOcrService.processImageUri(uri);
+              batchResults.push({
+                ...localResult,
+                frontPreview: uri,
+              });
+            }
+          } catch (e) {
+            console.warn(`Card ${i} scan error:`, e.message);
+            batchResults.push({
+              extractedFields: { fullName: `Contact ${i + 1}` },
+              frontPreview: uri,
+              rawText: '',
+            });
+          }
+        }
+
+        setCapturedPhotos([]);
         navigation.navigate('ReviewScreen', {
-          extractedData: response.data,
-          frontPreview: frontImgUrl,
-          backPreview: backImgUrl,
+          batchResults,
         });
       }
     } catch (err) {
-      console.warn('Backend OCR unreachable, running On-Device OCR:', err.message);
-      // Run On-Device OCR directly so the user NEVER has to manually type anything!
-      try {
-        const onDeviceResult = await onDeviceOcrService.processCardOnDevice(frontImageUri);
-        navigation.navigate('ReviewScreen', {
-          extractedData: onDeviceResult,
-          frontPreview: frontImageUri,
-          backPreview: backImageUri,
-        });
-      } catch (onDeviceErr) {
-        setError('Failed to process card OCR on device: ' + onDeviceErr.message);
-      }
+      console.warn('OCR error:', err);
+      // Fallback manual review
+      navigation.navigate('ReviewScreen', {
+        extractedData: {
+          extractedFields: { fullName: '' },
+          rawText: '',
+          confidence: 0,
+        },
+        frontPreview: urisToProcess[0],
+      });
     } finally {
       setIsProcessing(false);
+      setProcessingStatus('');
     }
   };
 
-  const currentPreviewUri = activeSide === 'front' ? frontImageUri : backImageUri;
+  const handleContinueBatch = () => {
+    const uris = capturedPhotos.map((p) => p.uri);
+    processOcr(uris);
+  };
+
+  const latestCaptured = capturedPhotos.length > 0 ? capturedPhotos[capturedPhotos.length - 1] : null;
 
   return (
-    <AppLayout
-      title="Card Scanner"
-      navigation={navigation}
-      activeRoute="ScanTab"
-    >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Header & Mode Switcher */}
-        <View style={styles.headerBlock}>
-          <Text style={styles.title}>Business Card Scanner</Text>
-          <Text style={styles.subtitle}>
-            Capture or upload card photos. Offline Tesseract OCR (Gujarati, English & Hindi) will
-            extract contact fields locally.
-          </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-          {/* Single-Sided vs Double-Sided Tabs */}
-          <View style={styles.modeToggleRow}>
-            <Text style={styles.modeLabel}>Card Sides:</Text>
-            <View style={styles.modeTabs}>
-              <TouchableOpacity
-                style={[styles.modeTab, !isDoubleSided && styles.modeTabActive]}
-                onPress={() => {
-                  setIsDoubleSided(false);
-                  setActiveSide('front');
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.modeTabText,
-                    !isDoubleSided && styles.modeTabTextActive,
-                  ]}
-                >
-                  Single-Sided
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modeTab, isDoubleSided && styles.modeTabActive]}
-                onPress={() => setIsDoubleSided(true)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.modeTabText,
-                    isDoubleSided && styles.modeTabTextActive,
-                  ]}
-                >
-                  Double-Sided
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Trained Sample Cards Testing Suite */}
-        <View style={styles.sampleSuiteBox}>
-          <View style={styles.sampleHeader}>
-            <View style={styles.sampleTitleRow}>
-              <Text style={styles.sampleEmoji}>🧪</Text>
-              <View>
-                <Text style={styles.sampleTitle}>Trained Cards Testing Suite</Text>
-                <Text style={styles.sampleSubtitle}>
-                  Pick any real card to test offline OCR immediately:
-                </Text>
-              </View>
-            </View>
-
-            {/* Toggle Real Examples vs Benchmark */}
-            <View style={styles.samplePillsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.samplePill,
-                  sampleMode === 'examples' && styles.samplePillActive,
-                ]}
-                onPress={() => setSampleMode('examples')}
-              >
-                <Text
-                  style={[
-                    styles.samplePillText,
-                    sampleMode === 'examples' && styles.samplePillTextActive,
-                  ]}
-                >
-                  Examples ({exampleCards.length})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.samplePill,
-                  sampleMode === 'benchmark' && styles.samplePillActive,
-                ]}
-                onPress={() => setSampleMode('benchmark')}
-              >
-                <Text
-                  style={[
-                    styles.samplePillText,
-                    sampleMode === 'benchmark' && styles.samplePillTextActive,
-                  ]}
-                >
-                  Benchmark ({benchmarkCards.length})
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Select Sample Button & Dropdown */}
+      {/* Top Overlay Bar */}
+      <View style={[styles.topSafeArea, { paddingTop: topInset + 6 }]}>
+        <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.dropdownTrigger}
-            onPress={() => setIsSampleListOpen(!isSampleListOpen)}
-            activeOpacity={0.7}
+            style={styles.circleBtn}
+            onPress={() => navigation.navigate('HomeTab')}
+            activeOpacity={0.75}
+            accessibilityLabel="Close Scanner"
           >
-            <Text style={styles.dropdownTriggerText} numberOfLines={1}>
-              {selectedCardTitle
-                ? `Selected: ${selectedCardTitle}`
-                : `-- Choose Sample Card (${
-                    sampleMode === 'examples'
-                      ? exampleCards.length
-                      : benchmarkCards.length
-                  } available) --`}
-            </Text>
-            <Text style={styles.dropdownArrow}>{isSampleListOpen ? '▲' : '▼'}</Text>
+            <VectorIcon name="close" size={20} color="#FFFFFF" strokeWidth={2.5} />
           </TouchableOpacity>
 
-          {isSampleListOpen ? (
-            <ScrollView style={styles.sampleListDropdown} nestedScrollEnabled>
-              {(sampleMode === 'examples' ? exampleCards : benchmarkCards).map((card) => (
+          <TouchableOpacity
+            style={styles.circleBtn}
+            onPress={() => setFlashOn(!flashOn)}
+            activeOpacity={0.75}
+            accessibilityLabel="Toggle Flash"
+          >
+            <VectorIcon
+              name={flashOn ? 'flash' : 'flash-off'}
+              size={20}
+              color={flashOn ? '#FFD300' : '#FFFFFF'}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Camera Viewfinder Area */}
+      <View style={styles.viewfinderContainer}>
+        {/* Yellow Corner Brackets Frame */}
+        <View style={styles.cardFrame}>
+          {latestCaptured?.uri ? (
+            <Image
+              source={{ uri: latestCaptured.uri }}
+              style={styles.capturedPreviewImg}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.emptyFrameContent}>
+              <VectorIcon name="camera" size={36} color="rgba(255, 211, 0, 0.4)" />
+            </View>
+          )}
+
+          {/* Yellow Corners */}
+          <View style={[styles.corner, styles.cornerTL]} />
+          <View style={[styles.corner, styles.cornerTR]} />
+          <View style={[styles.corner, styles.cornerBL]} />
+          <View style={[styles.corner, styles.cornerBR]} />
+        </View>
+
+        {/* Position card within frame pill */}
+        <View style={styles.guidancePill}>
+          <Text style={styles.guidanceText}>Position card within frame</Text>
+        </View>
+
+        {/* Multi-photo captured banner (if any) */}
+        {capturedPhotos.length > 0 ? (
+          <View style={styles.capturedBanner}>
+            <Text style={styles.capturedBannerText}>
+              {capturedPhotos.length} photo{capturedPhotos.length > 1 ? 's' : ''} captured
+            </Text>
+            <TouchableOpacity
+              style={styles.continueBtn}
+              onPress={handleContinueBatch}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueBtnText}>Continue &gt;</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {/* Mode Toggle Yellow Pill: Multiple Cards */}
+        <TouchableOpacity
+          style={styles.modePill}
+          onPress={() => setIsBatchMode(!isBatchMode)}
+          activeOpacity={0.85}
+        >
+          <VectorIcon name="maximize" size={16} color="#000000" />
+          <Text style={styles.modePillText}>
+            {isBatchMode ? 'Multiple Cards (Active)' : 'Multiple Cards'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Processing Overlay */}
+      {isProcessing ? (
+        <View style={styles.processingOverlay}>
+          <ActivityIndicator size="large" color="#FFD300" />
+          <Text style={styles.processingText}>{processingStatus}</Text>
+        </View>
+      ) : null}
+
+      {/* Bottom Shutter & Controls Deck */}
+      <View style={[styles.bottomSafeArea, { paddingBottom: bottomInset }]}>
+        <View style={styles.bottomDeck}>
+          {/* Flip / Samples Picker Button */}
+          <TouchableOpacity
+            style={styles.deckSideBtn}
+            onPress={() => setShowSamplesModal(true)}
+            activeOpacity={0.75}
+            accessibilityLabel="Sample Cards"
+          >
+            <VectorIcon name="rotate" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* White Center Shutter Button with Ring */}
+          <TouchableOpacity
+            style={styles.shutterOuter}
+            onPress={takePhotoWithCamera}
+            activeOpacity={0.85}
+            accessibilityLabel="Capture Card"
+          >
+            <View style={styles.shutterInner} />
+          </TouchableOpacity>
+
+          {/* Gallery Picker Button */}
+          <TouchableOpacity
+            style={styles.deckSideBtn}
+            onPress={pickFromGallery}
+            activeOpacity={0.75}
+            accessibilityLabel="Pick from Gallery"
+          >
+            <VectorIcon name="image" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Sample Cards Quick Drawer Modal */}
+      {showSamplesModal ? (
+        <View style={styles.samplesBackdrop}>
+          <View style={styles.samplesSheet}>
+            <View style={styles.samplesHeader}>
+              <Text style={styles.samplesTitle}>Select Sample Card to Test</Text>
+              <TouchableOpacity
+                onPress={() => setShowSamplesModal(false)}
+                style={styles.samplesCloseBtn}
+              >
+                <VectorIcon name="close" size={20} color="#000000" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.samplesList} horizontal showsHorizontalScrollIndicator={false}>
+              {sampleCards.map((sample, idx) => (
                 <TouchableOpacity
-                  key={card.id}
-                  style={styles.sampleDropdownItem}
-                  onPress={() => handleSelectSampleCard(card)}
+                  key={sample.id || idx}
+                  style={styles.sampleCardItem}
+                  onPress={() => handleSelectSample(sample)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.sampleItemText}>
-                    #{card.id} {card.title} {card.category ? `(${card.category})` : ''}
+                  <Image source={{ uri: sample.url }} style={styles.sampleThumb} resizeMode="cover" />
+                  <Text style={styles.sampleCardTitle} numberOfLines={1}>
+                    {sample.title}
                   </Text>
+                  <Text style={styles.sampleCardLang}>{sample.language || 'English'}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : null}
-        </View>
-
-        {/* Error Alert */}
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{error}</Text>
           </View>
-        ) : null}
-
-        {/* Side Selector Tabs (if double-sided) */}
-        {isDoubleSided ? (
-          <View style={styles.sideSelectorRow}>
-            <TouchableOpacity
-              style={[
-                styles.sideBtn,
-                activeSide === 'front' && styles.sideBtnActive,
-              ]}
-              onPress={() => setActiveSide('front')}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.sideBtnText,
-                  activeSide === 'front' && styles.sideBtnTextActive,
-                ]}
-              >
-                1. Front Side
-              </Text>
-              <View
-                style={[
-                  styles.sideBadge,
-                  frontImageUri && styles.sideBadgeReady,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.sideBadgeText,
-                    frontImageUri && styles.sideBadgeTextReady,
-                  ]}
-                >
-                  {frontImageUri ? 'Ready' : 'Pending'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.sideBtn,
-                activeSide === 'back' && styles.sideBtnActive,
-              ]}
-              onPress={() => setActiveSide('back')}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.sideBtnText,
-                  activeSide === 'back' && styles.sideBtnTextActive,
-                ]}
-              >
-                2. Back Side
-              </Text>
-              <View
-                style={[
-                  styles.sideBadge,
-                  backImageUri && styles.sideBadgeReady,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.sideBadgeText,
-                    backImageUri && styles.sideBadgeTextReady,
-                  ]}
-                >
-                  {backImageUri ? 'Ready' : 'Pending'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        {/* Card Capture & Preview Stage */}
-        <View style={styles.captureCard}>
-          {currentPreviewUri ? (
-            <View style={styles.previewContainer}>
-              <View style={styles.previewHeader}>
-                <Text style={styles.previewTitle}>
-                  ✓ {activeSide === 'front' ? 'Front Side' : 'Back Side'} Card Photo
-                </Text>
-                <TouchableOpacity
-                  style={styles.retakeBtn}
-                  onPress={() => {
-                    if (activeSide === 'front') setFrontImageUri(null);
-                    else setBackImageUri(null);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.retakeBtnText}>Change Photo</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.imageWrapper}>
-                <Image
-                  source={{ uri: currentPreviewUri }}
-                  style={styles.cardImage}
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
-          ) : (
-            <View style={styles.uploadZone}>
-              <View style={styles.zoneIconBadge}>
-                <Text style={styles.zoneEmoji}>📸</Text>
-              </View>
-              <Text style={styles.zoneHeading}>
-                Photograph {activeSide === 'front' ? 'Front' : 'Back'} of Card
-              </Text>
-              <Text style={styles.zoneSub}>
-                Position the business card within bright, even lighting for maximum OCR accuracy.
-              </Text>
-
-              <View style={styles.buttonsRow}>
-                <TouchableOpacity
-                  style={styles.btnCamera}
-                  onPress={takePhotoWithCamera}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.btnCameraText}>📷 Take Photo</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.btnGallery}
-                  onPress={pickFromGallery}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.btnGalleryText}>🖼️ Choose Photo</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
         </View>
+      ) : null}
 
-        {/* Global Action Bar: Process Card with OCR */}
-        <View style={styles.processCard}>
-          <View style={styles.processLeft}>
-            <Text style={styles.processHeading}>Ready to Extract Contact Data?</Text>
-            <Text style={styles.processSub}>
-              {frontImageUri
-                ? isDoubleSided && !backImageUri
-                  ? 'Front card ready. Add back side or proceed with single side.'
-                  : 'Image(s) ready. Auto-rotation and local Tesseract OCR will extract contact fields.'
-                : 'Please capture or select a card image first.'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.processBtn,
-              (!frontImageUri || isProcessing) && styles.processBtnDisabled,
-            ]}
-            onPress={handleProcessOcr}
-            disabled={!frontImageUri || isProcessing}
-            activeOpacity={0.85}
-          >
-            {isProcessing ? (
-              <View style={styles.processBtnRow}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text style={styles.processBtnText}>
-                  Processing Card with Local Tesseract OCR...
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.processBtnRow}>
-                <Text style={styles.processBtnText}>✨ Process Card with OCR →</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </AppLayout>
+      {/* Auth Gate Modal */}
+      <AuthGateModal
+        visible={isAuthModalVisible}
+        onClose={() => setIsAuthModalVisible(false)}
+        navigation={navigation}
+        featureName="Scan Business Cards"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgMain,
+    backgroundColor: '#121212',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 16,
+  topSafeArea: {
+    backgroundColor: 'transparent',
+    zIndex: 10,
   },
-  headerBlock: {
-    gap: 6,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  modeToggleRow: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 14 : 6,
   },
-  modeLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  modeTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.bgSubtle,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 3,
-  },
-  modeTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radii.sm,
-  },
-  modeTabActive: {
-    backgroundColor: colors.bgCard,
-    ...shadows.sm,
-  },
-  modeTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  modeTabTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  sampleSuiteBox: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: radii.lg,
-    padding: 14,
-    gap: 10,
-  },
-  sampleHeader: {
-    gap: 8,
-  },
-  sampleTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sampleEmoji: {
-    fontSize: 20,
-  },
-  sampleTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#166534',
-  },
-  sampleSubtitle: {
-    fontSize: 11,
-    color: '#15803D',
-  },
-  samplePillsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    backgroundColor: '#DCFCE7',
-    padding: 3,
-    borderRadius: radii.md,
-    alignSelf: 'flex-start',
-  },
-  samplePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.sm,
-  },
-  samplePillActive: {
-    backgroundColor: '#166534',
-  },
-  samplePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#166534',
-  },
-  samplePillTextActive: {
-    color: '#FFFFFF',
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  dropdownTriggerText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#14532D',
-    flex: 1,
-  },
-  dropdownArrow: {
-    fontSize: 10,
-    color: '#166534',
-    marginLeft: 6,
-  },
-  sampleListDropdown: {
-    maxHeight: 180,
-    backgroundColor: '#FFFFFF',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-  },
-  sampleDropdownItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0FDF4',
-  },
-  sampleItemText: {
-    fontSize: 12,
-    color: '#166534',
-    fontWeight: '600',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.dangerLight,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-    borderRadius: radii.md,
-    padding: 12,
-  },
-  errorIcon: {
-    fontSize: 14,
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.dangerDark,
-    flex: 1,
-  },
-  sideSelectorRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  sideBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  sideBtnActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  sideBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  sideBtnTextActive: {
-    color: colors.primary,
-  },
-  sideBadge: {
-    backgroundColor: colors.border,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.full,
-  },
-  sideBadgeReady: {
-    backgroundColor: colors.success,
-  },
-  sideBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  sideBadgeTextReady: {
-    color: '#FFFFFF',
-  },
-  captureCard: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: 16,
-    ...shadows.sm,
-  },
-  uploadZone: {
-    padding: 24,
-    alignItems: 'center',
-    gap: 8,
-  },
-  zoneIconBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.lg,
-    backgroundColor: colors.primaryLight,
+  circleBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
-  zoneEmoji: {
-    fontSize: 26,
+
+  /* Viewfinder */
+  viewfinderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
-  zoneHeading: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  zoneSub: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  buttonsRow: {
-    flexDirection: 'row',
-    gap: 10,
+  cardFrame: {
     width: '100%',
-    justifyContent: 'center',
-  },
-  btnCamera: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radii.md,
-  },
-  btnCameraText: {
-    color: colors.textWhite,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  btnGallery: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radii.md,
-  },
-  btnGalleryText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  previewContainer: {
-    gap: 12,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  previewTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.successDark,
-  },
-  retakeBtn: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.sm,
-  },
-  retakeBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  imageWrapper: {
-    backgroundColor: '#0F172A',
-    borderRadius: radii.md,
+    aspectRatio: 1.6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    position: 'relative',
     overflow: 'hidden',
-    height: 220,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardImage: {
+  capturedPreviewImg: {
     width: '100%',
     height: '100%',
   },
-  processCard: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: 18,
-    gap: 14,
-    ...shadows.sm,
-  },
-  processLeft: {
-    gap: 3,
-  },
-  processHeading: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  processSub: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
-  },
-  processBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingVertical: 13,
+  emptyFrameContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm,
   },
-  processBtnDisabled: {
-    opacity: 0.65,
+
+  /* Corner Brackets in Beamstart Yellow */
+  corner: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderColor: '#FFD300',
   },
-  processBtnRow: {
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 10,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 10,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 10,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 10,
+  },
+
+  /* Guidance Pill */
+  guidancePill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    marginTop: 20,
+  },
+  guidanceText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  /* Multi-photo Banner */
+  capturedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFD300',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    width: '100%',
+    marginTop: 18,
   },
-  processBtnText: {
-    color: colors.textWhite,
+  capturedBannerText: {
     fontSize: 14,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  continueBtn: {
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  continueBtnText: {
+    fontSize: 12,
     fontWeight: '700',
+    color: '#FFD300',
+  },
+
+  /* Multiple Cards Yellow Pill */
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD300',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 16,
+    gap: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modePillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  /* Processing Overlay */
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99,
+  },
+  processingText: {
+    marginTop: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFD300',
+  },
+
+  /* Bottom Controls Deck */
+  bottomSafeArea: {
+    backgroundColor: 'transparent',
+  },
+  bottomDeck: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 30,
+    paddingBottom: Platform.OS === 'android' ? 24 : 10,
+    paddingTop: 10,
+  },
+  deckSideBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shutterInner: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#FFFFFF',
+  },
+
+  /* Sample Cards Modal */
+  samplesBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
+  samplesSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  samplesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  samplesTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  samplesCloseBtn: {
+    padding: 6,
+  },
+  samplesList: {
+    flexDirection: 'row',
+  },
+  sampleCardItem: {
+    width: 140,
+    marginRight: 14,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  sampleThumb: {
+    width: '100%',
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  sampleCardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  sampleCardLang: {
+    fontSize: 11,
+    color: '#6B7280',
   },
 });

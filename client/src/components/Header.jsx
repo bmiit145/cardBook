@@ -1,9 +1,11 @@
 import React from 'react';
-import { Menu, ShieldCheck, Database, FileSpreadsheet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, ShieldCheck, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header({ onMenuClick, title = 'Dashboard' }) {
-  const { admin } = useAuth();
+  const { admin, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header
@@ -41,13 +43,31 @@ export default function Header({ onMenuClick, title = 'Dashboard' }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* System Status Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="badge badge-success" title="Admin Authenticated">
-            <ShieldCheck size={13} />
-            <span>Admin Active</span>
-          </span>
-        </div>
+        {isAuthenticated ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="badge badge-success" title="Authenticated User">
+              <ShieldCheck size={13} />
+              <span>{admin?.name || admin?.email?.split('@')[0] || 'Active User'}</span>
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/login')}
+            className="btn btn-primary btn-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#0f172a',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              padding: '6px 14px',
+            }}
+          >
+            <LogIn size={14} />
+            <span>Sign In / Register</span>
+          </button>
+        )}
       </div>
     </header>
   );

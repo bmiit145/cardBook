@@ -8,649 +8,434 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Share,
-  Linking,
   RefreshControl,
+  StatusBar,
+  Platform,
 } from 'react-native';
-import AppLayout from '../components/AppLayout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import VectorIcon from '../components/VectorIcon';
 import { contactService } from '../services/contactService';
-import { colors, radii, shadows } from '../theme/theme';
+import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme/theme';
 
 export default function ContactsScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
+  const { isAuthenticated, admin } = useAuth();
   const [contacts, setContacts] = useState([]);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [syncFilter, setSyncFilter] = useState(''); // '' | 'SYNCED' | 'PENDING' | 'FAILED'
+  const [filterFavsOnly, setFilterFavsOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
 
-  const fetchContacts = useCallback(
-    async (page = 1) => {
-      try {
-        const params = { page, limit: 10, q: search };
-        if (syncFilter) params.syncStatus = syncFilter;
+  const fetchContacts = useCallback(async () => {
+    if (!isAuthenticated) {
+      setContacts([]);
+      setFavoriteIds(new Set());
+      setIsLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
-        const res = await contactService.getContacts(params);
-        if (res?.data) {
-          setContacts(res.data.contacts || []);
-          if (res.data.pagination) {
-            setPagination(res.data.pagination);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching contacts:', err);
-      } finally {
-        setIsLoading(false);
-        setRefreshing(false);
+    try {
+      const params = { limit: 100, q: search };
+      const res = await contactService.getContacts(params);
+      const contactItems = res?.data?.contacts || res?.contacts || [];
+      if (Array.isArray(contactItems)) {
+        setContacts(contactItems);
+        const favs = contactItems.filter((c) => c.isFavorite).map((c) => c.id);
+        setFavoriteIds(new Set(favs));
+      } else {
+        setContacts([]);
+        setFavoriteIds(new Set());
       }
-    },
-    [search, syncFilter]
-  );
+    } catch (err) {
+      console.warn('Error fetching contacts:', err);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [search, isAuthenticated, admin?.id]);
 
   useEffect(() => {
-    fetchContacts(1);
-  }, [fetchContacts]);
+    fetchContacts();
+  }, [fetchContacts, isAuthenticated, admin?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchContacts();
+    }, [fetchContacts])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchContacts(1);
+    fetchContacts();
   };
 
-  const handleDeleteContact = (contact) => {
-    Alert.alert(
-      'Confirm Delete',
-      `Are you sure you want to soft-delete "${contact.fullName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await contactService.deleteContact(contact.id);
-              fetchContacts(pagination.page);
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete contact.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleExportShare = async () => {
-    if (contacts.length === 0) {
-      Alert.alert('Export', 'No contacts to export.');
-      return;
-    }
-    const lines = contacts.map(
-      (c) =>
-        `${c.fullName}, ${c.company?.name || ''}, ${c.designation || ''}, ${c.phone || ''}, ${
-          c.email || ''
-        }`
-    );
-    const content = `Full Name, Company, Designation, Phone, Email\n${lines.join('\n')}`;
+  const toggleFavorite = async (contactId) => {
     try {
-      await Share.share({
-        message: content,
-        title: 'Contacts Export',
-      });
-    } catch (_) {}
+      const nextFavs = new Set(favoriteIds);
+      const isFav = nextFavs.has(contactId);
+      if (isFav) {
+        nextFavs.delete(contactId);
+      } else {
+        nextFavs.add(contactId);
+      }
+      setFavoriteIds(nextFavs);
+      await contactService.updateContact(contactId, { isFavorite: !isFav });
+    } catch (e) {
+      console.warn('Could not update favorite:', e);
+    }
   };
+
+  const displayedContacts = contacts.filter((c) => {
+    if (filterFavsOnly && !favoriteIds.has(c.id)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <AppLayout
-      title="Contacts"
-      navigation={navigation}
-      activeRoute="ContactsTab"
-    >
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFD300" />
+
+      {/* Vibrant Yellow Top Header */}
+      <View style={[styles.header, { paddingTop: topInset + 10 }]}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Contacts</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{contacts.length} Total</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchBar}>
+          <VectorIcon name="search" size={18} color="#6B7280" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, company, email..."
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
+            clearButtonMode="while-editing"
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <VectorIcon name="close" size={16} color="#6B7280" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Filter Pills */}
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, !filterFavsOnly && styles.filterPillActive]}
+            onPress={() => setFilterFavsOnly(false)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterPillText, !filterFavsOnly && styles.filterPillTextActive]}>
+              All Contacts
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filterFavsOnly && styles.filterPillActive]}
+            onPress={() => setFilterFavsOnly(true)}
+            activeOpacity={0.8}
+          >
+            <VectorIcon
+              name="star-filled"
+              size={13}
+              color={filterFavsOnly ? '#000000' : '#4B5563'}
+            />
+            <Text style={[styles.filterPillText, filterFavsOnly && styles.filterPillTextActive]}>
+              Favorites Only
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Contacts List */}
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FFD300']} tintColor="#000000" />
         }
       >
-        {/* Header Block */}
-        <View style={styles.headerBlock}>
-          <View style={styles.titleArea}>
-            <Text style={styles.title}>Contact Directory</Text>
-            <Text style={styles.subtitle}>
-              Search, manage, and export digitized business contacts
-            </Text>
-          </View>
-
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={styles.btnSecondary}
-              onPress={handleExportShare}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.btnSecondaryText}>📥 Export CSV</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.btnPrimary}
-              onPress={() => navigation.navigate('ScanTab')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.btnPrimaryText}>+ Scan New Card</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Search & Filter Bar */}
-        <View style={styles.filterCard}>
-          <View style={styles.searchInputRow}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by name, company, email, or phone..."
-              placeholderTextColor={colors.textMuted}
-              value={search}
-              onChangeText={setSearch}
-              onSubmitEditing={() => fetchContacts(1)}
-              returnKeyType="search"
-            />
-            {search ? (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={styles.clearSearch}>✕</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Sync Filter Pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsScroll}>
-            <View style={styles.pillsRow}>
-              {[
-                { label: 'All Contacts', value: '' },
-                { label: 'Google Sheets: SYNCED', value: 'SYNCED' },
-                { label: 'Google Sheets: PENDING', value: 'PENDING' },
-                { label: 'Google Sheets: FAILED', value: 'FAILED' },
-              ].map((p) => {
-                const isActive = syncFilter === p.value;
-                return (
-                  <TouchableOpacity
-                    key={p.value}
-                    style={[styles.filterPill, isActive && styles.filterPillActive]}
-                    onPress={() => setSyncFilter(p.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        isActive && styles.filterPillTextActive,
-                      ]}
-                    >
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* Contact List */}
         {isLoading && !refreshing ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={colors.primary} />
+          <View style={styles.centerLoading}>
+            <ActivityIndicator size="small" color="#FFD300" />
             <Text style={styles.loadingText}>Loading contacts...</Text>
           </View>
-        ) : contacts.length === 0 ? (
+        ) : displayedContacts.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyHeading}>No contacts match your query.</Text>
-            <Text style={styles.emptySub}>Try searching with another name or clear filters.</Text>
+            <View style={styles.emptyAvatar}>
+              <VectorIcon name={!isAuthenticated ? 'lock' : 'users'} size={28} color="#000000" />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {!isAuthenticated
+                ? 'Sign In to View Contacts'
+                : filterFavsOnly
+                ? 'No Favorite Contacts Yet'
+                : 'No Business Cards Saved Yet'}
+            </Text>
+            <Text style={styles.emptySub}>
+              {!isAuthenticated
+                ? 'Log in to your CardBook account to access your private business contacts and directory.'
+                : filterFavsOnly
+                ? 'Tap the star icon on any contact to mark them as a favorite.'
+                : 'Scan business cards to automatically digitize and build your personal contact directory.'}
+            </Text>
+            {!isAuthenticated && (
+              <TouchableOpacity
+                style={styles.signInActionBtn}
+                onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.85}
+              >
+                <VectorIcon name="user" size={16} color="#000000" style={{ marginRight: 8 }} />
+                <Text style={styles.signInActionBtnText}>Sign In / Create Account</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          <View style={styles.contactList}>
-            {contacts.map((contact) => {
-              const sync = contact.sheetsSyncs?.[0];
-              const syncState = sync?.status || 'PENDING';
+          <View style={styles.contactsList}>
+            {displayedContacts.map((contact, idx) => {
+              const initial = (contact.fullName || 'C').trim().charAt(0).toUpperCase();
+              const isFav = favoriteIds.has(contact.id);
+
               return (
-                <View key={contact.id} style={styles.contactCard}>
-                  {/* Top Header */}
-                  <View style={styles.contactTopRow}>
-                    <TouchableOpacity
-                      style={styles.nameArea}
-                      onPress={() =>
-                        navigation.navigate('ContactDetailsScreen', { contactId: contact.id })
-                      }
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.contactName}>{contact.fullName}</Text>
-                      {contact.designation ? (
-                        <Text style={styles.contactDesignation}>{contact.designation}</Text>
-                      ) : null}
-                    </TouchableOpacity>
-
-                    <View
-                      style={[
-                        styles.syncBadge,
-                        syncState === 'SYNCED'
-                          ? styles.syncBadgeSuccess
-                          : syncState === 'FAILED'
-                          ? styles.syncBadgeDanger
-                          : styles.syncBadgeWarning,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.syncBadgeText,
-                          syncState === 'SYNCED'
-                            ? styles.syncBadgeTextSuccess
-                            : syncState === 'FAILED'
-                            ? styles.syncBadgeTextDanger
-                            : styles.syncBadgeTextWarning,
-                        ]}
-                      >
-                        {syncState}
-                      </Text>
-                    </View>
+                <TouchableOpacity
+                  key={contact.id || idx}
+                  style={styles.contactItem}
+                  onPress={() =>
+                    navigation.navigate('ContactDetailsScreen', { contactId: contact.id })
+                  }
+                  activeOpacity={0.7}
+                >
+                  {/* Monogram Avatar */}
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarInitial}>{initial}</Text>
                   </View>
 
-                  {/* Company & Location */}
-                  {contact.company?.name ? (
-                    <Text style={styles.contactCompany}>🏢 {contact.company.name}</Text>
-                  ) : null}
-
-                  {contact.city || contact.state ? (
-                    <Text style={styles.contactLocation}>
-                      📍 {[contact.city, contact.state, contact.country].filter(Boolean).join(', ')}
+                  {/* Contact Info */}
+                  <View style={styles.contactMeta}>
+                    <Text style={styles.contactName} numberOfLines={1}>
+                      {contact.fullName}
                     </Text>
-                  ) : null}
-
-                  {/* Communication Bar: Call, SMS, Email */}
-                  <View style={styles.commActionsRow}>
-                    {contact.phone ? (
-                      <TouchableOpacity
-                        style={styles.commPill}
-                        onPress={() => Linking.openURL(`tel:${contact.phone}`)}
-                      >
-                        <Text style={styles.commPillText}>📞 {contact.phone}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-
-                    {contact.email ? (
-                      <TouchableOpacity
-                        style={styles.commPill}
-                        onPress={() => Linking.openURL(`mailto:${contact.email}`)}
-                      >
-                        <Text style={styles.commPillText}>✉️ {contact.email}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
-
-                  {/* Bottom Footer Actions */}
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardDate}>
-                      {contact.createdAt
-                        ? new Date(contact.createdAt).toLocaleDateString()
-                        : '—'}
+                    <Text style={styles.contactSub} numberOfLines={1}>
+                      {contact.company?.name || contact.company || contact.designation || contact.email || 'Visiting Contact'}
                     </Text>
-
-                    <View style={styles.footerBtns}>
-                      <TouchableOpacity
-                        style={styles.viewBtn}
-                        onPress={() =>
-                          navigation.navigate('ContactDetailsScreen', { contactId: contact.id })
-                        }
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.viewBtnText}>👁️ View Details</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.deleteBtn}
-                        onPress={() => handleDeleteContact(contact)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.deleteBtnText}>🗑️</Text>
-                      </TouchableOpacity>
-                    </View>
                   </View>
-                </View>
+
+                  {/* Favorite Star */}
+                  <TouchableOpacity
+                    style={styles.starBtn}
+                    onPress={() => toggleFavorite(contact.id)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.7}
+                  >
+                    <VectorIcon
+                      name={isFav ? 'star-filled' : 'star'}
+                      size={20}
+                      color={isFav ? '#FFB800' : '#D1D5DB'}
+                    />
+                  </TouchableOpacity>
+                </TouchableOpacity>
               );
             })}
           </View>
         )}
-
-        {/* Pagination Controls */}
-        {pagination.totalPages > 1 ? (
-          <View style={styles.paginationRow}>
-            <TouchableOpacity
-              style={[styles.pageBtn, pagination.page <= 1 && styles.pageBtnDisabled]}
-              onPress={() => fetchContacts(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-            >
-              <Text style={styles.pageBtnText}>← Previous</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.pageIndicator}>
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.pageBtn,
-                pagination.page >= pagination.totalPages && styles.pageBtnDisabled,
-              ]}
-              onPress={() => fetchContacts(pagination.page + 1)}
-              disabled={pagination.page >= pagination.totalPages}
-            >
-              <Text style={styles.pageBtnText}>Next →</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
       </ScrollView>
-    </AppLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: colors.bgMain,
+    backgroundColor: '#FFD300',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 16,
+  header: {
+    backgroundColor: '#FFD300',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 16,
   },
-  headerBlock: {
-    gap: 12,
-  },
-  titleArea: {
-    gap: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  btnSecondary: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  btnSecondaryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  btnPrimary: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    ...shadows.sm,
-  },
-  btnPrimaryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textWhite,
-  },
-  filterCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    gap: 12,
-    ...shadows.sm,
-  },
-  searchInputRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bgSubtle,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  searchIcon: {
-    fontSize: 14,
-    marginRight: 8,
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: -0.3,
+  },
+  countBadge: {
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
-  clearSearch: {
     fontSize: 14,
-    color: colors.textMuted,
-    paddingHorizontal: 6,
+    color: '#111827',
+    marginLeft: 8,
   },
-  pillsScroll: {
+  filterRow: {
     flexDirection: 'row',
-  },
-  pillsRow: {
-    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgCard,
+    gap: 5,
   },
   filterPillActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
+    backgroundColor: '#000000',
   },
   filterPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#000000',
   },
   filterPillTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
+    color: '#FFD300',
   },
-  loadingBox: {
-    padding: 40,
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  centerLoading: {
+    padding: 30,
     alignItems: 'center',
-    gap: 10,
   },
   loadingText: {
+    marginTop: 8,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#6B7280',
   },
   emptyCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 36,
     alignItems: 'center',
-    gap: 6,
+    padding: 36,
   },
-  emptyEmoji: {
-    fontSize: 36,
-  },
-  emptyHeading: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  emptySub: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  contactList: {
-    gap: 12,
-  },
-  contactCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
+  emptyAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFF8D6',
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    gap: 10,
-    ...shadows.sm,
+    borderColor: '#FEEAA3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
-  contactTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  nameArea: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  contactName: {
+  emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.primary,
+    color: '#111827',
+    marginBottom: 6,
   },
-  contactDesignation: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  contactCompany: {
+  emptySub: {
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.secondary,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  contactLocation: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  commActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  commPill: {
-    backgroundColor: colors.bgSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  commPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  cardFooter: {
+  signInActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: colors.bgSubtle,
-    paddingTop: 10,
-    marginTop: 4,
+    justifyContent: 'center',
+    backgroundColor: '#FFD300',
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 14,
+    marginTop: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardDate: {
-    fontSize: 11,
-    color: colors.textMuted,
+  signInActionBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  footerBtns: {
+  contactsList: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+  },
+  contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  viewBtn: {
-    backgroundColor: colors.bgSubtle,
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF8D6',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  viewBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  deleteBtn: {
-    backgroundColor: colors.dangerLight,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-    borderRadius: radii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  deleteBtnText: {
-    fontSize: 12,
-  },
-  syncBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
-    borderWidth: 1,
-  },
-  syncBadgeSuccess: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.successBorder,
-  },
-  syncBadgeWarning: {
-    backgroundColor: colors.warningLight,
-    borderColor: colors.warningBorder,
-  },
-  syncBadgeDanger: {
-    backgroundColor: colors.dangerLight,
-    borderColor: colors.dangerBorder,
-  },
-  syncBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  syncBadgeTextSuccess: {
-    color: colors.successDark,
-  },
-  syncBadgeTextWarning: {
-    color: colors.warningDark,
-  },
-  syncBadgeTextDanger: {
-    color: colors.dangerDark,
-  },
-  paginationRow: {
-    flexDirection: 'row',
+    borderColor: '#FEEAA3',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    justifyContent: 'center',
   },
-  pageBtn: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  avatarInitial: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
   },
-  pageBtnDisabled: {
-    opacity: 0.4,
+  contactMeta: {
+    flex: 1,
+    marginLeft: 14,
   },
-  pageBtnText: {
-    fontSize: 12,
+  contactName: {
+    fontSize: 15,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#111827',
+    marginBottom: 2,
   },
-  pageIndicator: {
-    fontSize: 11,
-    color: colors.textMuted,
+  contactSub: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  starBtn: {
+    padding: 8,
   },
 });

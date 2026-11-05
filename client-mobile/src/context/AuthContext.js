@@ -32,6 +32,13 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const register = async (name, email, password) => {
+    const res = await authService.register(name, email, password);
+    setToken(res.token);
+    setAdmin(res.admin);
+    return res;
+  };
+
   const logout = async () => {
     await authService.logout();
     setToken(null);
@@ -46,6 +53,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(token),
         loading,
         login,
+        register,
         logout,
       }}
     >

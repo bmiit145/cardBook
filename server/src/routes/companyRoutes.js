@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const companyController = require('../controllers/companyController');
-const { authenticateAdmin } = require('../middleware/authMiddleware');
+const { authenticateAdmin, optionalAuth } = require('../middleware/authMiddleware');
 
-router.use(authenticateAdmin);
+router.get('/', optionalAuth, companyController.getCompanies);
+router.get('/:id/contacts', optionalAuth, companyController.getCompanyContacts);
 
-router.get('/', companyController.getCompanies);
-router.post('/', companyController.createCompany);
-router.put('/:id', companyController.updateCompany);
-router.get('/:id/contacts', companyController.getCompanyContacts);
+router.post('/', authenticateAdmin, companyController.createCompany);
+router.put('/:id', authenticateAdmin, companyController.updateCompany);
 
 module.exports = router;
 

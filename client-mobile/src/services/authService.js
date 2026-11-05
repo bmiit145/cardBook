@@ -2,6 +2,27 @@ import api, { TOKEN_KEY, ADMIN_KEY } from './api';
 import { storage } from '../utils/storage';
 
 export const authService = {
+  async register(name, email, password) {
+    const response = await api.post('/auth/register', {
+      name: (name || '').trim(),
+      email: email.trim(),
+      password,
+    });
+
+    const payload = response.data?.data || {};
+    const token = payload.token;
+    const admin = payload.admin;
+
+    if (token) {
+      await storage.setItem(TOKEN_KEY, token);
+    }
+    if (admin) {
+      await storage.setItem(ADMIN_KEY, JSON.stringify(admin));
+    }
+
+    return { token, admin };
+  },
+
   async login(email, password) {
     const response = await api.post('/auth/login', {
       email: email.trim(),
@@ -56,6 +77,7 @@ export const authService = {
 };
 
 export const {
+  register,
   login,
   logout,
   getStoredAuth,

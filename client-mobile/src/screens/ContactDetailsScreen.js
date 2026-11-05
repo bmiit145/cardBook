@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -10,38 +9,26 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Share,
+  StatusBar,
+  Platform,
 } from 'react-native';
-import AppLayout from '../components/AppLayout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import VectorIcon from '../components/VectorIcon';
 import CardPreviewModal from '../components/CardPreviewModal';
 import { contactService } from '../services/contactService';
-import { integrationService } from '../services/companyService';
-import { colors, radii, shadows } from '../theme/theme';
+import { getFullMediaUrl } from '../services/api';
+import { colors } from '../theme/theme';
 
 export default function ContactDetailsScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
   const { contactId } = route.params || {};
 
   const [contact, setContact] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
-
-  // Edit form state
-  const [editForm, setEditForm] = useState({
-    fullName: '',
-    company: '',
-    designation: '',
-    phone: '',
-    alternatePhone: '',
-    email: '',
-    website: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    notes: '',
-  });
 
   const fetchContact = useCallback(async () => {
     if (!contactId) return;
@@ -50,20 +37,7 @@ export default function ContactDetailsScreen({ route, navigation }) {
       if (res?.data?.contact) {
         const c = res.data.contact;
         setContact(c);
-        setEditForm({
-          fullName: c.fullName || '',
-          company: c.company?.name || '',
-          designation: c.designation || '',
-          phone: c.phone || '',
-          alternatePhone: c.alternatePhone || '',
-          email: c.email || '',
-          website: c.website || '',
-          address: c.address || '',
-          city: c.city || '',
-          state: c.state || '',
-          country: c.country || '',
-          notes: c.notes || '',
-        });
+        setIsFavorite(Boolean(c.isFavorite));
       }
     } catch (err) {
       console.error('Error fetching contact:', err);
@@ -76,34 +50,21 @@ export default function ContactDetailsScreen({ route, navigation }) {
     fetchContact();
   }, [fetchContact]);
 
-  const handleUpdateContact = async () => {
+  const toggleFavorite = async () => {
     try {
-      await contactService.updateContact(contactId, editForm);
-      setIsEditing(false);
-      fetchContact();
+      const nextFav = !isFavorite;
+      setIsFavorite(nextFav);
+      await contactService.updateContact(contactId, { isFavorite: nextFav });
     } catch (err) {
-      Alert.alert('Update Failed', 'Failed to update contact details.');
-    }
-  };
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    setSyncMessage('');
-    try {
-      const res = await integrationService.syncSingleContact(contactId);
-      setSyncMessage(res?.message || 'Synchronized with Google Sheets successfully!');
-      fetchContact();
-    } catch (err) {
-      setSyncMessage(err.response?.data?.message || 'Google Sheets sync failed.');
-    } finally {
-      setIsSyncing(false);
+      console.warn('Could not update favorite:', err);
+      setIsFavorite(!isFavorite);
     }
   };
 
   const handleDelete = () => {
     Alert.alert(
-      'Confirm Delete',
-      `Are you sure you want to soft-delete "${contact?.fullName}"?`,
+      'Delete Contact',
+      `Are you sure you want to delete "${contact?.fullName || 'this contact'}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -112,7 +73,7 @@ export default function ContactDetailsScreen({ route, navigation }) {
           onPress: async () => {
             try {
               await contactService.deleteContact(contactId);
-              navigation.navigate('ContactsTab');
+              navigation.goBack();
             } catch (err) {
               Alert.alert('Error', 'Failed to delete contact.');
             }
@@ -122,739 +83,532 @@ export default function ContactDetailsScreen({ route, navigation }) {
     );
   };
 
+  const handleCall = () => {
+    const phone = contact?.phone || contact?.alternatePhone;
+    if (!phone) {
+      Alert.alert('No Phone', 'This contact has no phone number listed.');
+      return;
+    }
+    const clean = phone.replace(/[^0-9+]/g, '');
+    Linking.openURL(`tel:${clean}`);
+  };
+
+  const handleWhatsApp = () => {
+    const phone = contact?.phone || contact?.alternatePhone;
+    if (!phone) {
+      Alert.alert('No Phone', 'This contact has no phone number listed.');
+      return;
+    }
+    const digits = phone.replace(/[^0-9]/g, '');
+    const intlNumber = digits.length === 10 ? `91${digits}` : digits;
+    const text = encodeURIComponent(`Hello ${contact?.fullName || ''}, glad connecting with you!`);
+    Linking.openURL(`https://wa.me/${intlNumber}?text=${text}`);
+  };
+
+  const handleEmail = () => {
+    if (!contact?.email) {
+      Alert.alert('No Email', 'This contact has no email address listed.');
+      return;
+    }
+    Linking.openURL(`mailto:${contact.email.trim()}`);
+  };
+
+  const handleWebsite = () => {
+    let url = contact?.website;
+    if (!url) {
+      Alert.alert('No Website', 'This contact has no website listed.');
+      return;
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    Linking.openURL(url);
+  };
+
+  const handleEditPress = () => {
+    navigation.navigate('EditContactScreen', {
+      contactId: contact.id,
+      initialData: contact,
+      onSaveCallback: () => {
+        fetchContact();
+      },
+    });
+  };
+
   const frontImg = contact?.images?.find((img) => img.side === 'FRONT');
-  const latestSync = contact?.sheetsSyncs?.[0];
-  const syncState = latestSync?.status || 'PENDING';
+  const cardPhotoUrl = frontImg?.secureUrl ? getFullMediaUrl(frontImg.secureUrl) : null;
+  const initial = (contact?.fullName || 'C').trim().charAt(0).toUpperCase();
 
   return (
-    <AppLayout
-      title="Contact Details"
-      navigation={navigation}
-      activeRoute="ContactsTab"
-    >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Top Breadcrumb & Actions */}
-        <View style={styles.topActionsRow}>
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFD300" />
+
+      {/* Solid Vibrant Yellow Header Bar */}
+      <View style={[styles.header, { paddingTop: topInset, height: 56 + topInset }]}>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityLabel="Back"
+        >
+          <VectorIcon name="arrow-left" size={22} color="#000000" />
+        </TouchableOpacity>
+
+        <View style={styles.headerRightActions}>
           <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.navigate('ContactsTab')}
+            style={styles.headerBtn}
+            onPress={handleEditPress}
             activeOpacity={0.7}
+            accessibilityLabel="Edit"
           >
-            <Text style={styles.backBtnText}>← Back to Directory</Text>
+            <VectorIcon name="edit" size={20} color="#000000" />
           </TouchableOpacity>
 
-          <View style={styles.actionGroup}>
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => setIsEditing(!isEditing)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.editBtnText}>
-                {isEditing ? 'Cancel Edit' : '✏️ Edit Contact'}
-              </Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={toggleFavorite}
+            activeOpacity={0.7}
+            accessibilityLabel="Favorite"
+          >
+            <VectorIcon
+              name={isFavorite ? 'star-filled' : 'star'}
+              size={21}
+              color={isFavorite ? '#FFB800' : '#000000'}
+            />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={handleDelete}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.deleteBtnText}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={handleDelete}
+            activeOpacity={0.7}
+            accessibilityLabel="Delete"
+          >
+            <VectorIcon name="trash" size={20} color="#000000" />
+          </TouchableOpacity>
         </View>
+      </View>
 
-        {syncMessage ? (
-          <View style={styles.syncAlert}>
-            <Text style={styles.syncAlertText}>{syncMessage}</Text>
-          </View>
-        ) : null}
-
-        {isLoading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading contact details...</Text>
-          </View>
-        ) : !contact ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Contact Not Found</Text>
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => navigation.navigate('ContactsTab')}
-            >
-              <Text style={styles.backBtnText}>Return to Contacts</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            {/* Card Preview Box */}
-            {frontImg?.secureUrl ? (
-              <View style={styles.cardPreviewBox}>
-                <View style={styles.cardPreviewHeader}>
-                  <Text style={styles.cardPreviewTitle}>Original Business Card Photo</Text>
-                  <TouchableOpacity
-                    style={styles.zoomBtn}
-                    onPress={() => setIsZoomOpen(true)}
-                  >
-                    <Text style={styles.zoomBtnText}>🔍 Full View</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.imageBox}>
-                  <Image
-                    source={{ uri: frontImg.secureUrl }}
-                    style={styles.cardImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              </View>
-            ) : null}
-
-            {/* Google Sheets Sync Status Card */}
-            <View style={styles.sheetsCard}>
-              <View style={styles.sheetsHeader}>
-                <View style={styles.sheetsTitleRow}>
-                  <Text style={styles.sheetsEmoji}>📊</Text>
-                  <Text style={styles.sheetsTitle}>Google Sheets Synchronization</Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.syncBadge,
-                    syncState === 'SYNCED'
-                      ? styles.syncBadgeSuccess
-                      : syncState === 'FAILED'
-                      ? styles.syncBadgeDanger
-                      : styles.syncBadgeWarning,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.syncBadgeText,
-                      syncState === 'SYNCED'
-                        ? styles.syncBadgeTextSuccess
-                        : syncState === 'FAILED'
-                        ? styles.syncBadgeTextDanger
-                        : styles.syncBadgeTextWarning,
-                    ]}
-                  >
-                    {syncState}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.sheetsDetails}>
-                <Text style={styles.sheetsDetailText}>
-                  <Text style={{ fontWeight: '700' }}>Row Reference: </Text>
-                  {latestSync?.sheetRowReference || 'Not yet allocated'}
-                </Text>
-                <Text style={styles.sheetsDetailText}>
-                  <Text style={{ fontWeight: '700' }}>Last Sync: </Text>
-                  {latestSync?.lastSyncedAt
-                    ? new Date(latestSync.lastSyncedAt).toLocaleString()
-                    : 'Pending background sync'}
-                </Text>
-                {latestSync?.lastError ? (
-                  <Text style={[styles.sheetsDetailText, { color: colors.danger }]}>
-                    <Text style={{ fontWeight: '700' }}>Error: </Text>
-                    {latestSync.lastError}
-                  </Text>
-                ) : null}
-              </View>
-
-              <TouchableOpacity
-                style={styles.syncBtn}
-                onPress={handleManualSync}
-                disabled={isSyncing}
-                activeOpacity={0.8}
-              >
-                {isSyncing ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Text style={styles.syncBtnText}>🔄 Sync to Google Sheets Now</Text>
-                )}
-              </TouchableOpacity>
+      {isLoading ? (
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color="#FFD300" />
+          <Text style={styles.loadingText}>Loading contact details...</Text>
+        </View>
+      ) : !contact ? (
+        <View style={styles.centerLoading}>
+          <Text style={styles.notFoundText}>Contact Not Found</Text>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.backBtnText}>Return to Directory</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Upper Profile Section */}
+          <View style={styles.profileSection}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarInitial}>{initial}</Text>
             </View>
 
-            {/* Contact Information / Edit Mode */}
-            {isEditing ? (
-              <View style={styles.editCard}>
-                <Text style={styles.editHeading}>Edit Contact Details</Text>
+            <Text style={styles.fullName}>{contact.fullName || 'Unnamed Contact'}</Text>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Full Name</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.fullName}
-                    onChangeText={(val) => setEditForm({ ...editForm, fullName: val })}
-                  />
-                </View>
+            {contact.designation ? (
+              <Text style={styles.designation}>{contact.designation}</Text>
+            ) : null}
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Company Name</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.company}
-                    onChangeText={(val) => setEditForm({ ...editForm, company: val })}
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Designation / Title</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.designation}
-                    onChangeText={(val) => setEditForm({ ...editForm, designation: val })}
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Mobile Number</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.phone}
-                    onChangeText={(val) => setEditForm({ ...editForm, phone: val })}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Alternate Phone</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.alternatePhone}
-                    onChangeText={(val) => setEditForm({ ...editForm, alternatePhone: val })}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Email Address</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.email}
-                    onChangeText={(val) => setEditForm({ ...editForm, email: val })}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Website</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.website}
-                    onChangeText={(val) => setEditForm({ ...editForm, website: val })}
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Street Address</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={editForm.address}
-                    onChangeText={(val) => setEditForm({ ...editForm, address: val })}
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>City, State, Country</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={[editForm.city, editForm.state, editForm.country]
-                      .filter(Boolean)
-                      .join(', ')}
-                    onChangeText={(val) => {
-                      const parts = val.split(',').map((s) => s.trim());
-                      setEditForm({
-                        ...editForm,
-                        city: parts[0] || '',
-                        state: parts[1] || '',
-                        country: parts[2] || '',
-                      });
-                    }}
-                  />
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Notes</Text>
-                  <TextInput
-                    style={[styles.formInput, { height: 70 }]}
-                    value={editForm.notes}
-                    onChangeText={(val) => setEditForm({ ...editForm, notes: val })}
-                    multiline
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.saveBtn}
-                  onPress={handleUpdateContact}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.saveBtnText}>Save Contact Changes</Text>
-                </TouchableOpacity>
+            {contact.company?.name || contact.company ? (
+              <View style={styles.companyPill}>
+                <VectorIcon name="briefcase" size={13} color="#000000" />
+                <Text style={styles.companyText}>
+                  {String(contact.company?.name || contact.company).toUpperCase()}
+                </Text>
               </View>
-            ) : (
-              <View style={styles.detailsCard}>
-                {/* Contact Name & Title */}
-                <View style={styles.nameHeader}>
-                  <Text style={styles.fullName}>{contact.fullName}</Text>
-                  {contact.designation ? (
-                    <Text style={styles.designation}>{contact.designation}</Text>
-                  ) : null}
-                  {contact.company?.name ? (
-                    <Text style={styles.companyName}>🏢 {contact.company.name}</Text>
-                  ) : null}
-                </View>
+            ) : null}
+          </View>
 
-                {/* Quick Comms Grid */}
-                <View style={styles.commsGrid}>
-                  <View style={styles.commTile}>
-                    <Text style={styles.commLabel}>Mobile Number</Text>
-                    {contact.phone ? (
-                      <TouchableOpacity onPress={() => Linking.openURL(`tel:${contact.phone}`)}>
-                        <Text style={styles.commLink}>📞 {contact.phone}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.commEmpty}>—</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.commTile}>
-                    <Text style={styles.commLabel}>Alternate Phone</Text>
-                    {contact.alternatePhone ? (
-                      <TouchableOpacity
-                        onPress={() => Linking.openURL(`tel:${contact.alternatePhone}`)}
-                      >
-                        <Text style={styles.commLink}>📞 {contact.alternatePhone}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.commEmpty}>—</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.commTile}>
-                    <Text style={styles.commLabel}>Email Address</Text>
-                    {contact.email ? (
-                      <TouchableOpacity
-                        onPress={() => Linking.openURL(`mailto:${contact.email}`)}
-                      >
-                        <Text style={styles.commLink}>✉️ {contact.email}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.commEmpty}>—</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.commTile}>
-                    <Text style={styles.commLabel}>Website</Text>
-                    {contact.website ? (
-                      <TouchableOpacity
-                        onPress={() => {
-                          const url = contact.website.startsWith('http')
-                            ? contact.website
-                            : `https://${contact.website}`;
-                          Linking.openURL(url);
-                        }}
-                      >
-                        <Text style={styles.commLink}>🌐 {contact.website}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.commEmpty}>—</Text>
-                    )}
-                  </View>
-                </View>
-
-                {/* Address */}
-                <View style={styles.addressBlock}>
-                  <Text style={styles.commLabel}>Physical Address</Text>
-                  <Text style={styles.addressStreet}>{contact.address || '—'}</Text>
-                  <Text style={styles.addressCity}>
-                    {[contact.city, contact.state, contact.country].filter(Boolean).join(', ') ||
-                      '—'}
-                  </Text>
-                </View>
-
-                {/* Notes */}
-                {contact.notes ? (
-                  <View style={styles.notesBlock}>
-                    <Text style={styles.commLabel}>Notes & Social Links</Text>
-                    <Text style={styles.notesText}>{contact.notes}</Text>
-                  </View>
-                ) : null}
-
-                {/* Save to Phone Contacts Button */}
-                <TouchableOpacity
-                  style={styles.savePhoneBtn}
-                  onPress={async () => {
-                    const res = await contactService.saveToPhoneAddressBook(contact);
-                    Alert.alert('Phone Address Book', res.message);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.savePhoneBtnText}>📱 Save to Phone Contacts</Text>
-                </TouchableOpacity>
+          {/* 4 Quick Action Buttons */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleEmail}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircle}>
+                <VectorIcon name="mail" size={20} color="#000000" />
               </View>
-            )}
-          </>
-        )}
-      </ScrollView>
+              <Text style={styles.actionLabel}>Email</Text>
+            </TouchableOpacity>
 
-      {/* Card Full View Modal */}
-      <CardPreviewModal
-        visible={isZoomOpen}
-        imageUrl={frontImg?.secureUrl}
-        title={`${contact?.fullName || 'Contact'} Card Full View`}
-        onClose={() => setIsZoomOpen(false)}
-      />
-    </AppLayout>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleCall}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircle}>
+                <VectorIcon name="phone" size={20} color="#000000" />
+              </View>
+              <Text style={styles.actionLabel}>Call</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleWhatsApp}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircle}>
+                <VectorIcon name="whatsapp" size={20} color="#000000" />
+              </View>
+              <Text style={styles.actionLabel}>WhatsApp</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleWebsite}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircle}>
+                <VectorIcon name="globe" size={20} color="#000000" />
+              </View>
+              <Text style={styles.actionLabel}>Website</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Section: BUSINESS CARD */}
+          {cardPhotoUrl ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionCaption}>BUSINESS CARD</Text>
+              <TouchableOpacity
+                style={styles.cardImageContainer}
+                onPress={() => setIsZoomOpen(true)}
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{ uri: cardPhotoUrl }}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Section: CONTACT INFORMATION */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionCaption}>CONTACT INFORMATION</Text>
+
+            <View style={styles.infoCard}>
+              {contact.email ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="mail" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Email</Text>
+                    <Text style={styles.infoValue}>{contact.email}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {contact.phone ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="phone" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Primary Phone</Text>
+                    <Text style={styles.infoValue}>{contact.phone}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {contact.alternatePhone ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="phone" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Secondary Phone</Text>
+                    <Text style={styles.infoValue}>{contact.alternatePhone}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {contact.website ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="globe" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Website</Text>
+                    <Text style={styles.infoValue}>{contact.website}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {contact.address ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="map-pin" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Address</Text>
+                    <Text style={styles.infoValue}>
+                      {[contact.address, contact.city, contact.state, contact.country]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {contact.notes ? (
+                <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                  <View style={styles.infoIconBox}>
+                    <VectorIcon name="edit" size={17} color="#CA8A04" />
+                  </View>
+                  <View style={styles.infoTextBox}>
+                    <Text style={styles.infoLabel}>Notes</Text>
+                    <Text style={styles.infoValue}>{contact.notes}</Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Full Preview Zoom Modal */}
+      {cardPhotoUrl ? (
+        <CardPreviewModal
+          visible={isZoomOpen}
+          imageUrl={cardPhotoUrl}
+          title={contact?.fullName || 'Business Card'}
+          onClose={() => setIsZoomOpen(false)}
+        />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: colors.bgMain,
+    backgroundColor: '#FFD300',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  topActionsRow: {
+  header: {
+    height: 56,
+    backgroundColor: '#FFD300',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 10,
+    paddingHorizontal: 16,
   },
-  backBtn: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radii.sm,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  actionGroup: {
+  headerRightActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  editBtn: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radii.sm,
-  },
-  editBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  deleteBtn: {
-    backgroundColor: colors.dangerLight,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: radii.sm,
-  },
-  deleteBtnText: {
-    fontSize: 13,
-  },
-  syncAlert: {
-    backgroundColor: colors.primaryLight,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    borderRadius: radii.md,
-    padding: 12,
-  },
-  syncAlertText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  loadingBox: {
-    padding: 40,
+  centerLoading: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    padding: 24,
   },
   loadingText: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
-  emptyCard: {
-    padding: 30,
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
+  notFoundText: {
+    fontSize: 18,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#111827',
+    marginBottom: 12,
   },
-  cardPreviewBox: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    gap: 10,
-    ...shadows.sm,
+  backBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    backgroundColor: '#FFD300',
+    borderRadius: 20,
   },
-  cardPreviewHeader: {
+  backBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  /* Profile Section */
+  profileSection: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  avatarCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#FFF8D6',
+    borderWidth: 2,
+    borderColor: '#FEEAA3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  avatarInitial: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  fullName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  designation: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  companyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: '#FFF8D6',
+    borderWidth: 1,
+    borderColor: '#FEEAA3',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    gap: 6,
   },
-  cardPreviewTitle: {
-    fontSize: 13,
+  companyText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+
+  /* Action Buttons Row */
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F8F9FA',
+  },
+  actionItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+  },
+  actionCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFD300',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionLabel: {
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#111827',
   },
-  zoomBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: colors.bgSubtle,
-    borderRadius: radii.sm,
+
+  /* Section Blocks */
+  sectionBlock: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
   },
-  zoomBtnText: {
+  sectionCaption: {
     fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    textTransform: 'uppercase',
   },
-  imageBox: {
+  cardImageContainer: {
+    width: '100%',
     height: 180,
-    backgroundColor: '#0F172A',
-    borderRadius: radii.md,
+    borderRadius: 14,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+    marginBottom: 16,
   },
   cardImage: {
     width: '100%',
     height: '100%',
   },
-  sheetsCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    gap: 12,
-    ...shadows.sm,
-  },
-  sheetsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sheetsTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sheetsEmoji: {
-    fontSize: 16,
-  },
-  sheetsTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  sheetsDetails: {
-    gap: 4,
-    backgroundColor: colors.bgSubtle,
-    borderRadius: radii.md,
-    padding: 10,
-  },
-  sheetsDetailText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    lineHeight: 16,
-  },
-  syncBtn: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  syncBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  detailsCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 20,
-    gap: 18,
-    ...shadows.sm,
-  },
-  nameHeader: {
-    gap: 3,
-  },
-  fullName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  designation: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  companyName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.secondary,
-  },
-  commsGrid: {
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.bgSubtle,
-    paddingTop: 14,
-  },
-  commTile: {
-    gap: 3,
-  },
-  commLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    color: colors.textMuted,
-  },
-  commLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  commEmpty: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  addressBlock: {
-    gap: 3,
-    borderTopWidth: 1,
-    borderTopColor: colors.bgSubtle,
-    paddingTop: 14,
-  },
-  addressStreet: {
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
-  addressCity: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  notesBlock: {
-    gap: 3,
-    borderTopWidth: 1,
-    borderTopColor: colors.bgSubtle,
-    paddingTop: 14,
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  savePhoneBtn: {
-    backgroundColor: colors.primaryLight,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    borderRadius: radii.md,
-    paddingVertical: 11,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  savePhoneBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  editCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    gap: 14,
-    ...shadows.sm,
-  },
-  editHeading: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  formGroup: {
-    gap: 4,
-  },
-  formLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: colors.textPrimary,
+
+  /* Info Card */
+  infoCard: {
     backgroundColor: '#FFFFFF',
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  saveBtnText: {
-    color: colors.textWhite,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  syncBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
+    borderRadius: 14,
     borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    marginBottom: 20,
   },
-  syncBadgeSuccess: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.successBorder,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  syncBadgeWarning: {
-    backgroundColor: colors.warningLight,
-    borderColor: colors.warningBorder,
+  infoIconBox: {
+    width: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
-  syncBadgeDanger: {
-    backgroundColor: colors.dangerLight,
-    borderColor: colors.dangerBorder,
+  infoTextBox: {
+    flex: 1,
   },
-  syncBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+  infoLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  syncBadgeTextSuccess: {
-    color: colors.successDark,
-  },
-  syncBadgeTextWarning: {
-    color: colors.warningDark,
-  },
-  syncBadgeTextDanger: {
-    color: colors.dangerDark,
+  infoValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
-

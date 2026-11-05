@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>CardScan - Business Card Scanner</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-container": "#fefcff",
+            "outline-variant": "#c1c6d7",
+            "error": "#ba1a1a",
+            "on-primary": "#ffffff",
+            "surface-variant": "#e4e2e4",
+            "tertiary-fixed-dim": "#ffb595",
+            "inverse-primary": "#adc6ff",
+            "secondary-container": "#e0dfe4",
+            "surface-bright": "#fcf8fb",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#c6c6cb",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#001a41",
+            "inverse-surface": "#303032",
+            "background": "#fcf8fb",
+            "tertiary-container": "#c64f00",
+            "on-secondary-fixed": "#1a1b1f",
+            "secondary": "#5d5e63",
+            "on-error": "#ffffff",
+            "on-surface": "#1b1b1d",
+            "surface": "#fcf8fb",
+            "surface-container": "#f0edef",
+            "on-tertiary-container": "#fffbff",
+            "on-tertiary-fixed-variant": "#7c2e00",
+            "outline": "#717786",
+            "primary": "#0058bc",
+            "primary-fixed": "#d8e2ff",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#f6f3f5",
+            "inverse-on-surface": "#f3f0f2",
+            "on-primary-fixed-variant": "#004493",
+            "primary-fixed-dim": "#adc6ff",
+            "tertiary-fixed": "#ffdbcc",
+            "on-secondary-container": "#626267",
+            "tertiary": "#9e3d00",
+            "surface-tint": "#005bc1",
+            "on-background": "#1b1b1d",
+            "surface-container-highest": "#e4e2e4",
+            "surface-dim": "#dcd9dc",
+            "surface-container-high": "#eae7ea",
+            "secondary-fixed": "#e3e2e7",
+            "on-tertiary-fixed": "#351000",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#414755",
+            "primary-container": "#0070eb",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#46464b"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1.25rem",
+            "gutter": "1rem",
+            "space-md": "0.75rem",
+            "margin": "1rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "caption-2": ["Inter"],
+            "subheadline": ["Inter"],
+            "caption-1": ["Inter"],
+            "callout": ["Inter"],
+            "title-2": ["Inter"],
+            "body": ["Inter"],
+            "large-title": ["Inter"],
+            "footnote": ["Inter"],
+            "title-1": ["Inter"],
+            "title-3": ["Inter"]
+          },
+          "fontSize": {
+            "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+            "caption-2": ["11px", {"lineHeight": "13px", "letterSpacing": "0.07px", "fontWeight": "500"}],
+            "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}],
+            "caption-1": ["12px", {"lineHeight": "16px", "letterSpacing": "0.00px", "fontWeight": "400"}],
+            "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+            "title-2": ["22px", {"lineHeight": "28px", "letterSpacing": "0.35px", "fontWeight": "700"}],
+            "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+            "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+            "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+            "title-1": ["28px", {"lineHeight": "34px", "letterSpacing": "0.36px", "fontWeight": "700"}],
+            "title-3": ["20px", {"lineHeight": "25px", "letterSpacing": "0.38px", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #F2F2F7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .hairline-b {
+      box-shadow: 0 0.5px 0 0 #E5E5EA;
+    }
+    .hairline-t {
+      box-shadow: 0 -0.5px 0 0 #E5E5EA;
+    }
+    .hairline-border {
+      border: 0.5px solid #E5E5EA;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface bg-[#F2F2F7] min-h-screen flex justify-center selection:bg-primary-fixed">
+<!-- Mobile Viewport Canvas Container -->
+<main class="w-full max-w-[430px] min-h-screen bg-[#F2F2F7] relative flex flex-col pb-[98px]">
+<!-- 1. Native iOS Status Bar -->
+<header class="sticky top-0 z-40 bg-[#F2F2F7]/90 backdrop-blur-xl pt-2 px-space-lg">
+<div class="h-[44px] flex items-center justify-between">
+<!-- Time -->
+<span class="text-footnote font-headline font-semibold text-black tracking-tight pl-1">9:41</span>
+<!-- Dynamic Island / Speaker Pill simulation -->
+<div class="w-28 h-5 bg-black rounded-full mx-auto hidden xs:block"></div>
+<!-- System Status Indicators -->
+<div class="flex items-center space-x-1.5 pr-1 text-black">
+<!-- Cellular -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 17 12">
+<rect height="4" rx="0.75" width="3" x="0" y="8"></rect>
+<rect height="6.5" rx="0.75" width="3" x="4.5" y="5.5"></rect>
+<rect height="9" rx="0.75" width="3" x="9" y="3"></rect>
+<rect height="12" rx="0.75" width="3" x="13.5" y="0"></rect>
+</svg>
+<!-- Wi-Fi -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 16 12">
+<path d="M8 2.5C10.7 2.5 13.1 3.6 14.8 5.4L16 4.1C13.9 1.9 11.1 0.6 8 0.6C4.9 0.6 2.1 1.9 0 4.1L1.2 5.4C2.9 3.6 5.3 2.5 8 2.5ZM8 6.2C9.8 6.2 11.4 7 12.5 8.2L13.7 6.9C12.3 5.3 10.2 4.3 8 4.3C5.8 4.3 3.7 5.3 2.3 6.9L3.5 8.2C4.6 7 6.2 6.2 8 6.2ZM8 9.8C6.9 9.8 6 10.7 6 11.8C6 11.9 6 12 6.1 12H9.9C10 12 10 11.9 10 11.8C10 10.7 9.1 9.8 8 9.8Z"></path>
+</svg>
+<!-- Battery Pill -->
+<div class="flex items-center">
+<div class="w-5 h-2.5 rounded-sm border border-black/80 p-0.5 flex items-center">
+<div class="w-full h-full bg-black rounded-2xs"></div>
+</div>
+<div class="w-0.5 h-1 bg-black/80 rounded-r-xs ml-0.5"></div>
+</div>
+</div>
+</div>
+<!-- 2. Shared Component: TopAppBar with Large Title & Profile Monogram -->
+<section class="w-full pt-1 pb-3 flex items-center justify-between">
+<h1 class="text-large-title font-large-title text-black tracking-tight">CardScan</h1>
+<div class="flex items-center space-x-2">
+<button aria-label="User profile avatar badge" class="w-9 h-9 rounded-full bg-primary-container text-white flex items-center justify-center font-headline text-footnote active:opacity-75 transition-opacity shadow-sm">
+            JD
+          </button>
+</div>
+</section>
+<!-- 3. Apple iOS Search Bar -->
+<div class="pb-3">
+<div class="h-9 px-3 rounded-lg bg-[#E3E3E8] flex items-center space-x-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-container transition-all">
+<span class="material-symbols-outlined text-[#8E8E93] text-[20px]" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none p-0 text-subheadline font-subheadline text-black placeholder-[#8E8E93] focus:ring-0 focus:outline-none" placeholder="Search 1,428 contacts or companies..." type="text"/>
+<button aria-label="Voice dictation" class="text-[#8E8E93] active:text-black flex items-center">
+<span class="material-symbols-outlined text-[19px]" data-icon="mic">mic</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Scrollable Content Canvas -->
+<div class="px-space-lg flex flex-col space-y-5 pt-1">
+<!-- 4. Quick Stats Row: Two Clean White Hairline Inset Cards -->
+<section aria-label="Metrics Overview" class="grid grid-cols-2 gap-3">
+<!-- Card 1: Total Contacts -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md hairline-border shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-footnote font-subheadline text-secondary">Total Contacts</span>
+<div class="w-7 h-7 rounded-full bg-[#F2F2F7] flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[17px]" data-icon="badge">badge</span>
+</div>
+</div>
+<div class="mt-2.5">
+<span class="text-title-1 font-title-1 text-black font-bold tracking-tight">1,428</span>
+<p class="text-caption-2 font-caption-2 text-primary font-medium mt-0.5 flex items-center">
+<span class="material-symbols-outlined text-[13px] mr-0.5" data-icon="arrow_upward">arrow_upward</span>
+              +14 this week
+            </p>
+</div>
+</article>
+<!-- Card 2: Companies -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md hairline-border shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-footnote font-subheadline text-secondary">Companies</span>
+<div class="w-7 h-7 rounded-full bg-[#F2F2F7] flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[17px]" data-icon="domain">domain</span>
+</div>
+</div>
+<div class="mt-2.5">
+<span class="text-title-1 font-title-1 text-black font-bold tracking-tight">38</span>
+<p class="text-caption-2 font-caption-2 text-secondary font-medium mt-0.5">
+              19 verified domains
+            </p>
+</div>
+</article>
+</section>
+<!-- 5. Prominent Primary Hero Card: Action Hub -->
+<section class="bg-surface-container-lowest rounded-2xl p-space-lg hairline-border shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col space-y-4">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md bg-[#E5F1FF] text-primary-container text-caption-1 font-headline font-semibold">
+<span class="material-symbols-outlined text-[14px] mr-1.5 fill-icon" data-icon="auto_awesome">auto_awesome</span>
+            AI OCR Vision Extraction
+          </span>
+<span class="text-caption-2 font-caption-2 text-secondary">v2.4 Core</span>
+</div>
+<div>
+<h2 class="text-title-2 font-title-2 text-black tracking-tight">Scan Business Card</h2>
+<p class="text-subheadline font-subheadline text-secondary mt-1 leading-snug">
+            Capture physical cards instantly with on-device auto edge detection and CRM sync.
+          </p>
+</div>
+<div class="flex flex-col space-y-2.5 pt-1">
+<!-- Primary CTA Button -->
+<button class="w-full h-[50px] bg-primary-container text-on-primary rounded-xl font-headline text-headline flex items-center justify-center space-x-2 active:opacity-80 transition-opacity shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="photo_camera">photo_camera</span>
+<span>Scan Business Card</span>
+</button>
+<!-- Secondary CTA Button -->
+<button class="w-full h-[50px] bg-surface-container-lowest text-primary-container hairline-border rounded-xl font-headline text-headline flex items-center justify-center space-x-2 active:bg-[#F2F2F7] transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="photo_library">photo_library</span>
+<span>Import from Photos</span>
+</button>
+</div>
+</section>
+<!-- 6. Section Header: Recent Scans -->
+<div class="flex items-center justify-between pt-1">
+<h3 class="text-title-3 font-title-3 text-black">Recent Scans</h3>
+<button class="text-subheadline font-subheadline font-semibold text-primary-container active:opacity-70 transition-opacity">
+          See All
+        </button>
+</div>
+<!-- 7. Grouped Contact List: iOS Inset Grouped Table View -->
+<section class="bg-surface-container-lowest rounded-2xl hairline-border overflow-hidden divide-y divide-[#E5E5EA]">
+<!-- Contact 1: Rachit Kapur -->
+<article class="p-space-lg flex items-center justify-between active:bg-[#F9F9FB] transition-colors">
+<div class="flex items-center space-x-3 min-w-0 pr-2">
+<div class="w-[42px] h-[42px] rounded-full bg-[#E5F1FF] text-primary-container flex items-center justify-center font-headline text-footnote shrink-0 font-semibold">
+              RK
+            </div>
+<div class="min-w-0">
+<h4 class="text-headline font-headline text-black truncate leading-snug">Rachit Kapur</h4>
+<p class="text-footnote font-footnote text-secondary truncate mt-0.5">Director · N.K. Kapur &amp; Co.</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 shrink-0">
+<button aria-label="Call Rachit Kapur" class="w-8 h-8 rounded-full bg-[#F2F2F7] flex items-center justify-center active:bg-[#E5E5EA] transition-colors">
+<span class="material-symbols-outlined text-primary-container text-[18px]" data-icon="call">call</span>
+</button>
+<button aria-label="Email Rachit Kapur" class="w-8 h-8 rounded-full bg-[#F2F2F7] flex items-center justify-center active:bg-[#E5E5EA] transition-colors">
+<span class="material-symbols-outlined text-primary-container text-[18px]" data-icon="mail">mail</span>
+</button>
+</div>
+</article>
+<!-- Contact 2: Dhruv Patel -->
+<article class="p-space-lg flex items-center justify-between active:bg-[#F9F9FB] transition-colors">
+<div class="flex items-center space-x-3 min-w-0 pr-2">
+<div class="w-[42px] h-[42px] rounded-full bg-[#F2F2F7] text-[#636366] flex items-center justify-center font-headline text-footnote shrink-0 font-semibold">
+              DP
+            </div>
+<div class="min-w-0">
+<h4 class="text-headline font-headline text-black truncate leading-snug">Dhruv Patel</h4>
+<p class="text-footnote font-footnote text-secondary truncate mt-0.5">Senior Partner · Nexus Advisory</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 shrink-0">
+<button aria-label="Call Dhruv Patel" class="w-8 h-8 rounded-full bg-[#F2F2F7] flex items-center justify-center active:bg-[#E5E5EA] transition-colors">
+<span class="material-symbols-outlined text-primary-container text-[18px]" data-icon="call">call</span>
+</button>
+<span class="material-symbols-outlined text-[#C7C7CC] text-[20px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</article>
+<!-- Contact 3: Anita Sharma -->
+<article class="p-space-lg flex items-center justify-between active:bg-[#F9F9FB] transition-colors">
+<div class="flex items-center space-x-3 min-w-0 pr-2">
+<div class="w-[42px] h-[42px] rounded-full bg-[#E8F8EE] text-[#34C759] flex items-center justify-center font-headline text-footnote shrink-0 font-semibold">
+              AS
+            </div>
+<div class="min-w-0">
+<h4 class="text-headline font-headline text-black truncate leading-snug">Anita Sharma</h4>
+<p class="text-footnote font-footnote text-secondary truncate mt-0.5">VP Operations · Vertex Global</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 shrink-0">
+<span class="material-symbols-outlined text-[#C7C7CC] text-[20px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</article>
+</section>
+<!-- Sync Status Footnote -->
+<footer class="pt-1 pb-4 flex items-center justify-center space-x-1.5 text-secondary">
+<span class="material-symbols-outlined text-[15px] text-[#34C759]" data-icon="cloud_done">cloud_done</span>
+<span class="text-caption-2 font-caption-2">iCloud CRM Sync Up to Date · Just now</span>
+</footer>
+</div>
+<!-- 8. Shared Component: BottomNavBar with Native iOS Home Indicator -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[83px] pb-[34px] px-space-sm bg-white/90 backdrop-blur-xl hairline-t">
+<!-- Tab 1: Home (Active) -->
+<button class="flex flex-col items-center justify-center text-primary-container py-1 active:opacity-60 transition-opacity">
+<span class="material-symbols-outlined text-[24px] fill-icon" data-icon="home">home</span>
+<span class="text-caption-2 font-caption-2 font-medium mt-0.5">Home</span>
+</button>
+<!-- Tab 2: Scan -->
+<button class="flex flex-col items-center justify-center text-secondary py-1 active:opacity-60 transition-opacity relative">
+<span class="material-symbols-outlined text-[24px]" data-icon="document_scanner">document_scanner</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Scan</span>
+</button>
+<!-- Tab 3: Contacts -->
+<button class="flex flex-col items-center justify-center text-secondary py-1 active:opacity-60 transition-opacity">
+<span class="material-symbols-outlined text-[24px]" data-icon="contacts">contacts</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Contacts</span>
+</button>
+<!-- Tab 4: Settings -->
+<button class="flex flex-col items-center justify-center text-secondary py-1 active:opacity-60 transition-opacity">
+<span class="material-symbols-outlined text-[24px]" data-icon="settings">settings</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Settings</span>
+</button>
+<!-- Native iOS Home Indicator Bar -->
+<div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-[134px] h-[5px] bg-black rounded-full pointer-events-none"></div>
+</nav>
+</main>
+</body></html>

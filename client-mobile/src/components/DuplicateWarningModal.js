@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import VectorIcon from './VectorIcon';
 import { colors, radii, shadows } from '../theme/theme';
 
 export default function DuplicateWarningModal({
@@ -28,7 +29,9 @@ export default function DuplicateWarningModal({
         <View style={styles.card}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.warningIcon}>⚠️</Text>
+            <View style={styles.warningIconWrapper}>
+              <VectorIcon name="alert" size={20} color="#D97706" />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>Potential Duplicate Contact</Text>
               <Text style={styles.subtitle}>
@@ -46,8 +49,18 @@ export default function DuplicateWarningModal({
                   <Text style={styles.matchCompany}>{dup.company.name}</Text>
                 ) : null}
                 <View style={styles.matchMeta}>
-                  {dup.phone ? <Text style={styles.matchField}>📞 {dup.phone}</Text> : null}
-                  {dup.email ? <Text style={styles.matchField}>✉️ {dup.email}</Text> : null}
+                  {dup.phone ? (
+                    <View style={styles.matchFieldRow}>
+                      <VectorIcon name="phone" size={12} color="#64748B" />
+                      <Text style={styles.matchField}>{dup.phone}</Text>
+                    </View>
+                  ) : null}
+                  {dup.email ? (
+                    <View style={styles.matchFieldRow}>
+                      <VectorIcon name="mail" size={12} color="#64748B" />
+                      <Text style={styles.matchField}>{dup.email}</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -100,8 +113,16 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  warningIcon: {
-    fontSize: 26,
+  warningIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
   },
   title: {
     fontSize: 16,
@@ -139,7 +160,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
+  },
+  matchFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   matchField: {
     fontSize: 11,

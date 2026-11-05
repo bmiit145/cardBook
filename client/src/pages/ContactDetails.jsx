@@ -4,10 +4,8 @@ import {
   ArrowLeft,
   Edit,
   Trash2,
-  FileSpreadsheet,
   CheckCircle2,
   AlertTriangle,
-  RotateCw,
   Building,
   Mail,
   Phone,
@@ -18,7 +16,6 @@ import {
 import CardPreview from '../components/CardPreview';
 import ContactForm from '../components/ContactForm';
 import { contactService } from '../services/contactService';
-import { integrationService } from '../services/companyService';
 import { formatDateTime } from '../utils/formatters';
 
 export default function ContactDetails() {
@@ -28,8 +25,6 @@ export default function ContactDetails() {
   const [contact, setContact] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
 
   const fetchContact = async () => {
     try {
@@ -56,20 +51,6 @@ export default function ContactDetails() {
     } catch (err) {
       console.error('Error updating contact', err);
       alert('Failed to update contact.');
-    }
-  };
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    setSyncMessage('');
-    try {
-      const res = await integrationService.syncSingleContact(id);
-      setSyncMessage(res?.message || 'Synchronized with Google Sheets successfully!');
-      fetchContact();
-    } catch (err) {
-      setSyncMessage(err.response?.data?.message || 'Google Sheets sync failed.');
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -107,7 +88,6 @@ export default function ContactDetails() {
 
   const frontImage = contact.images?.find((img) => img.side === 'FRONT');
   const backImage = contact.images?.find((img) => img.side === 'BACK');
-  const latestSync = contact.sheetsSyncs?.[0];
 
   return (
     <div className="content-wrapper">
@@ -148,93 +128,15 @@ export default function ContactDetails() {
         </div>
       </div>
 
-      {syncMessage && (
-        <div
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            color: '#1e40af',
-            fontSize: '0.88rem',
-            marginBottom: '20px',
-          }}
-        >
-          {syncMessage}
-        </div>
-      )}
-
       {/* Main Grid: Card Image vs Details */}
       <div className="review-grid">
-        {/* Left Column: Original Card Images & Google Sheets Sync Info */}
+        {/* Left Column: Original Card Images */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <CardPreview
             frontUrl={frontImage?.secureUrl}
             backUrl={backImage?.secureUrl}
             title="Original Visiting Card Photo"
           />
-
-          {/* Google Sheets Sync Card */}
-          <div className="card" style={{ padding: '20px' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '14px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileSpreadsheet size={18} style={{ color: '#0284c7' }} />
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                  Google Sheets Synchronization
-                </h4>
-              </div>
-
-              <span
-                className={`badge ${
-                  latestSync?.status === 'SYNCED'
-                    ? 'badge-success'
-                    : latestSync?.status === 'FAILED'
-                    ? 'badge-danger'
-                    : 'badge-warning'
-                }`}
-              >
-                {latestSync?.status || 'PENDING'}
-              </span>
-            </div>
-
-            <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.8 }}>
-              <div>
-                <strong>Sheet Row Reference:</strong>{' '}
-                {latestSync?.sheetRowReference || 'Not yet allocated'}
-              </div>
-              <div>
-                <strong>Last Attempt:</strong>{' '}
-                {latestSync?.lastSyncedAt
-                  ? formatDateTime(latestSync.lastSyncedAt)
-                  : 'Pending worker execution'}
-              </div>
-              {latestSync?.lastError && (
-                <div style={{ color: '#ef4444' }}>
-                  <strong>Error:</strong> {latestSync.lastError}
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: '16px' }}>
-              <button
-                type="button"
-                onClick={handleManualSync}
-                disabled={isSyncing}
-                className="btn btn-secondary btn-sm"
-                style={{ width: '100%' }}
-              >
-                <RotateCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                <span>{isSyncing ? 'Synchronizing...' : 'Sync to Google Sheets Now'}</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Contact Details or Edit Form */}

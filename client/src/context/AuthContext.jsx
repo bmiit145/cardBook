@@ -40,6 +40,15 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const register = async (name, email, password) => {
+    const res = await authService.register(name, email, password);
+    if (res?.data?.admin) {
+      setAdmin(res.data.admin);
+      setIsAuthenticated(true);
+    }
+    return res;
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -56,6 +65,7 @@ export function AuthProvider({ children }) {
         isAuthenticated,
         isLoading,
         login,
+        register,
         logout,
       }}
     >

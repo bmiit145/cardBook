@@ -37,6 +37,38 @@ function getTrainedDataPath() {
 }
 
 /**
+ * Calls dedicated Python OCR microservice if available on local port 8000
+ */
+async function callPythonOcrService(imageBuffer, languages = 'eng+hin+guj', psm = 11) {
+  const ocrServiceUrl = process.env.OCR_SERVICE_URL || 'http://localhost:8000';
+  try {
+    const formData = new FormData();
+    const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
+    formData.append('file', blob, 'card.jpg');
+    formData.append('languages', languages);
+    formData.append('psm', String(psm));
+    formData.append('auto_rotate', 'true');
+
+    const res = await fetch(`${ocrServiceUrl}/api/v1/ocr`, {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.text && data.text.trim().length > 10 && data.confidence > 40) {
+        logger.info(`[OCR] Python microservice processed card with confidence ${data.confidence}%`);
+        return data;
+      }
+    }
+  } catch (err) {
+    // Graceful fallback to local Node.js Tesseract.js
+  }
+  return null;
+}
+
+/**
  * Initializes and returns a cached Tesseract worker (strictly local/offline with tessdata_best)
  */
 async function getWorker() {
@@ -348,9 +380,29 @@ async function extractTextFromImage(rawImageBuffer, options = {}) {
     logger.warn('Could not read image metadata with Sharp', err);
   }
 
-  // Determine physical aspect ratio:
-  // If height > width * 1.15 (portrait orientation): phone was held vertically
-  // Most business cards are landscape, so 270° or 90° are the most likely upright angles
+  // 1. Try Python microservice first if available
+  const pyResult = await callPythonOcrService(rawImageBuffer, options.languages, options.psm);
+  if (pyResult && pyResult.text && pyResult.confidence > 50) {
+    const layout = parseTsvLayout('', meta.width || 1000, meta.height || 600);
+    return {
+      rawText: pyResult.text,
+      confidence: Math.round(pyResult.confidence),
+      qualityScore: scoreOcrQuality(pyResult.text, pyResult.confidence),
+      detectedLanguages: ['guj', 'eng', 'hin'],
+      bestAngle: pyResult.selected_rotation || 0,
+      psm: String(pyResult.psm || '11'),
+      orientedBuffer: rawImageBuffer,
+      originalBuffer: rawImageBuffer,
+      layout,
+      blocks: pyResult.words || [],
+      tsv: '',
+      engine: 'Python FastAPI (Tesseract 5 + OpenCV)',
+      engineVersion: '5.0.0',
+      preprocessing: { wasInverted: pyResult.was_inverted },
+    };
+  }
+
+  // 2. Local Node.js Tesseract 5 engine fallback
   const isPortrait = meta.height && meta.width && meta.height > meta.width * 1.15;
   const candidateAngles = options.forceAngle !== undefined
     ? [options.forceAngle]

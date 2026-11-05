@@ -1,13 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const integrationController = require('../controllers/integrationController');
-const { authenticateAdmin } = require('../middleware/authMiddleware');
+const { optionalAuth } = require('../middleware/authMiddleware');
 
-router.use(authenticateAdmin);
-
-router.get('/status', integrationController.getStatus);
-router.post('/sheets/retry', integrationController.retryFailedSheetsSync);
-router.post('/sheets/sync/:id', integrationController.syncSingleContact);
+router.get('/status', optionalAuth, integrationController.getStatus);
 
 module.exports = router;
-

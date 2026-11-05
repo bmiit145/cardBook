@@ -1,6 +1,5 @@
 const { getDb } = require('../config/database');
 const cloudinaryService = require('./cloudinaryService');
-const { syncContact } = require('./sheetsSyncService');
 const logger = require('../utils/logger');
 
 /**
@@ -41,14 +40,15 @@ async function findOrCreateCompany(companyName, additionalData = {}) {
  * @param {Array<{side: string, publicId: string, assetId: string, secureUrl: string, isLocal: boolean}>} uploadedImages
  * @param {string} originalOcrText
  */
-async function saveContactWithImages(contactData, uploadedImages = [], originalOcrText = '') {
+async function saveContactWithImages(contactData, uploadedImages = [], originalOcrText = '', userId = null) {
   const db = getDb();
 
   try {
     // 1. Resolve Company
     let companyId = contactData.companyId || null;
-    if (!companyId && contactData.company) {
-      const company = await findOrCreateCompany(contactData.company, {
+    const targetCompany = (contactData.company || contactData.companyName || '').trim();
+    if (!companyId && targetCompany) {
+      const company = await findOrCreateCompany(targetCompany, {
         website: contactData.website,
         address: contactData.address,
         city: contactData.city,
@@ -66,6 +66,7 @@ async function saveContactWithImages(contactData, uploadedImages = [], originalO
       const newContact = await tx.businessContact.create({
         data: {
           fullName: contactData.fullName || 'Unnamed Contact',
+          userId: userId || contactData.userId || null,
           companyId,
           designation: contactData.designation || null,
           phone: contactData.phone || null,
@@ -105,21 +106,7 @@ async function saveContactWithImages(contactData, uploadedImages = [], originalO
         });
       }
 
-      // Create Google Sheets sync job
-      await tx.googleSheetsSync.create({
-        data: {
-          contactId: newContact.id,
-          status: 'PENDING',
-          retryCount: 0,
-        },
-      });
-
       return newContact;
-    });
-
-    // 3. Immediately trigger background synchronization attempt
-    syncContact(result.id).catch((err) => {
-      logger.warn(`Initial Google Sheets background sync attempt deferred: ${err.message}`);
     });
 
     return result;

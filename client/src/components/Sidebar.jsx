@@ -13,12 +13,12 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { admin, logout } = useAuth();
+  const { admin, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const navItems = [
@@ -93,7 +93,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 <CreditCard size={20} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>CardScan AI</h2>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>CardBook</h2>
                 <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Admin Portal</span>
               </div>
             </div>
@@ -166,71 +166,90 @@ export default function Sidebar({ isOpen, onClose }) {
             backgroundColor: '#f8fafc',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
+          {isAuthenticated ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {(admin?.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ overflow: 'hidden' }}>
+                  <p
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {admin?.name || 'User'}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '0.72rem',
+                      color: '#64748b',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {admin?.email}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                title="Logout"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
+                  color: '#ef4444',
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px',
+                  borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
+                  cursor: 'pointer',
                 }}
               >
-                A
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <p
-                  style={{
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {admin?.name || 'Administrator'}
-                </p>
-                <p
-                  style={{
-                    fontSize: '0.72rem',
-                    color: '#64748b',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {admin?.email}
-                </p>
-              </div>
+                <LogOut size={17} />
+              </button>
             </div>
-
+          ) : (
             <button
-              onClick={handleLogout}
-              title="Logout"
+              onClick={() => navigate('/login')}
+              className="btn btn-primary btn-sm"
               style={{
-                color: '#ef4444',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '100%',
+                backgroundColor: '#0f172a',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                padding: '8px',
+                textAlign: 'center',
               }}
             >
-              <LogOut size={17} />
+              Sign In / Register
             </button>
-          </div>
+          )}
         </div>
       </aside>
     </>

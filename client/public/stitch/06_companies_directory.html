@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>CardScan - Companies Directory</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#717786",
+            "primary-container": "#0070eb",
+            "on-error": "#ffffff",
+            "secondary-fixed-dim": "#c6c6cb",
+            "on-primary-container": "#fefcff",
+            "inverse-surface": "#303032",
+            "surface-container-lowest": "#ffffff",
+            "surface-dim": "#dcd9dc",
+            "surface": "#fcf8fb",
+            "on-secondary-container": "#626267",
+            "surface-tint": "#005bc1",
+            "on-secondary-fixed-variant": "#46464b",
+            "tertiary-fixed-dim": "#ffb595",
+            "surface-container": "#f0edef",
+            "secondary-fixed": "#e3e2e7",
+            "primary-fixed": "#d8e2ff",
+            "surface-container-high": "#eae7ea",
+            "on-primary-fixed": "#001a41",
+            "on-secondary-fixed": "#1a1b1f",
+            "surface-variant": "#e4e2e4",
+            "on-tertiary-container": "#fffbff",
+            "tertiary": "#9e3d00",
+            "on-surface": "#1b1b1d",
+            "on-background": "#1b1b1d",
+            "inverse-on-surface": "#f3f0f2",
+            "primary-fixed-dim": "#adc6ff",
+            "on-tertiary-fixed": "#351000",
+            "on-secondary": "#ffffff",
+            "error-container": "#ffdad6",
+            "outline-variant": "#c1c6d7",
+            "background": "#fcf8fb",
+            "surface-bright": "#fcf8fb",
+            "secondary-container": "#e0dfe4",
+            "secondary": "#5d5e63",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#e4e2e4",
+            "primary": "#0058bc",
+            "tertiary-fixed": "#ffdbcc",
+            "surface-container-low": "#f6f3f5",
+            "on-surface-variant": "#414755",
+            "on-primary-fixed-variant": "#004493",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "tertiary-container": "#c64f00",
+            "on-tertiary-fixed-variant": "#7c2e00",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#adc6ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "1.25rem",
+            "space-md": "0.75rem",
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-lg": "1rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "title-3": ["Inter"],
+            "title-1": ["Inter"],
+            "title-2": ["Inter"],
+            "callout": ["Inter"],
+            "large-title": ["Inter"],
+            "subheadline": ["Inter"],
+            "caption-2": ["Inter"],
+            "body": ["Inter"],
+            "footnote": ["Inter"],
+            "caption-1": ["Inter"]
+          },
+          "fontSize": {
+            "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+            "title-3": ["20px", {"lineHeight": "25px", "letterSpacing": "0.38px", "fontWeight": "600"}],
+            "title-1": ["28px", {"lineHeight": "34px", "letterSpacing": "0.36px", "fontWeight": "700"}],
+            "title-2": ["22px", {"lineHeight": "28px", "letterSpacing": "0.35px", "fontWeight": "700"}],
+            "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+            "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+            "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}],
+            "caption-2": ["11px", {"lineHeight": "13px", "letterSpacing": "0.07px", "fontWeight": "500"}],
+            "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+            "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+            "caption-1": ["12px", {"lineHeight": "16px", "letterSpacing": "0.00px", "fontWeight": "400"}]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      background-color: #F2F2F7;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen text-on-surface bg-[#F2F2F7] flex flex-col justify-between items-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Viewport Frame Container -->
+<div class="w-full max-w-[430px] min-h-screen bg-[#F2F2F7] relative flex flex-col pb-[100px] shadow-2xl">
+<!-- iOS 18 System Status Bar (Light Mode) -->
+<header class="sticky top-0 z-40 bg-[#F2F2F7]/80 backdrop-blur-xl">
+<div class="h-11 px-6 flex justify-between items-center text-on-surface select-none pt-1">
+<span class="font-headline text-headline font-semibold text-[15px] tracking-tight">9:41</span>
+<div class="flex items-center space-x-2 text-on-surface">
+<!-- Cellular -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 17 12">
+<rect height="4" rx="0.75" width="2.5" x="0" y="8"></rect>
+<rect height="6.5" rx="0.75" width="2.5" x="4.5" y="5.5"></rect>
+<rect height="9" rx="0.75" width="2.5" x="9" y="3"></rect>
+<rect height="11.5" rx="0.75" width="2.5" x="13.5" y="0.5"></rect>
+</svg>
+<!-- Wifi -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 16 12">
+<path d="M8 3.6c2.4 0 4.6.9 6.2 2.5.4.4.4 1 0 1.4s-1 .4-1.4 0C11.5 6.2 9.8 5.4 8 5.4s-3.5.8-4.8 2.1c-.4.4-1 .4-1.4 0s-.4-1 0-1.4C3.4 4.5 5.6 3.6 8 3.6zm0 4.4c1.2 0 2.3.5 3.1 1.3.4.4.4 1 0 1.4s-1 .4-1.4 0C9.2 10.2 8.6 10 8 10s-1.2.2-1.7.7c-.4.4-1 .4-1.4 0s-.4-1 0-1.4C5.7 8.5 6.8 8 8 8zm0 4.2a1.2 1.2 0 100-2.4 1.2 1.2 0 000 2.4z"></path>
+</svg>
+<!-- Battery -->
+<div class="w-6 h-3 border border-on-surface rounded-[4px] p-0.5 flex items-center">
+<div class="h-full w-full bg-on-surface rounded-[1.5px]"></div>
+</div>
+</div>
+</div>
+<!-- Native Navigation Bar (Top Actions) -->
+<div class="px-space-lg pt-1 pb-2 flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center border border-surface-container-highest">
+<span class="material-symbols-outlined text-secondary text-[18px]">business</span>
+</div>
+<span class="font-subheadline text-subheadline text-secondary font-medium">Directory</span>
+</div>
+<button class="flex items-center space-x-1 text-primary active:opacity-60 transition-opacity duration-150 py-1 px-2 rounded-lg font-headline text-headline text-[16px]">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+<span>Add</span>
+</button>
+</div>
+<!-- iOS Large Title & Saved Metric Badge -->
+<div class="px-space-lg pt-1 pb-3 flex items-baseline justify-between">
+<div class="flex items-baseline space-x-3">
+<h1 class="font-large-title text-large-title text-on-surface tracking-tight font-bold">Companies</h1>
+<span class="font-subheadline text-subheadline text-secondary font-normal">38 saved</span>
+</div>
+</div>
+<!-- Search Field Pill -->
+<div class="px-space-lg pb-3">
+<div class="relative flex items-center bg-[#E5E5EA]/70 rounded-[11px] h-9 px-2.5 transition focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/20">
+<span class="material-symbols-outlined text-secondary text-[20px] mr-2" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none p-0 font-body text-body text-[16px] text-on-surface placeholder:text-secondary focus:ring-0 focus:outline-none" placeholder="Search companies..." type="text"/>
+<button aria-label="Voice Search" class="text-secondary active:opacity-60 transition-opacity p-0.5">
+<span class="material-symbols-outlined text-[19px]" data-icon="mic">mic</span>
+</button>
+</div>
+</div>
+<!-- Filter Chips / Segmented Selection -->
+<div class="px-space-lg pb-3 overflow-x-auto flex space-x-2 no-scrollbar">
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface font-subheadline text-subheadline text-[13px] font-semibold shadow-sm border border-[#E5E5EA] active:scale-95 transition-transform">
+          All Companies (38)
+        </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full bg-[#E5E5EA]/60 text-secondary font-subheadline text-subheadline text-[13px] active:scale-95 transition-transform">
+          Recently Scanned
+        </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full bg-[#E5E5EA]/60 text-secondary font-subheadline text-subheadline text-[13px] active:scale-95 transition-transform">
+          High Volume
+        </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-space-lg pt-2">
+<!-- Section Header -->
+<div class="flex items-center justify-between mb-2.5 px-1">
+<span class="font-footnote text-footnote text-secondary font-semibold uppercase tracking-wider text-[12px]">SAVED ORGANIZATIONS</span>
+<button class="text-primary font-caption-1 text-caption-1 font-medium hover:underline">Sort by Name</button>
+</div>
+<!-- Company Cards Stack -->
+<div class="space-y-3">
+<!-- Card 1: N.K. Kapur & Co. Pvt. Ltd. -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-[#E5E5EA] active:bg-surface-container/50 transition-colors duration-150 cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex space-x-3.5 items-start">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed/40 text-primary font-bold flex items-center justify-center font-title-3 text-title-3 text-[18px] shrink-0 border border-primary-fixed">
+                NK
+              </div>
+<div class="space-y-1">
+<h3 class="font-headline text-headline text-on-surface text-[16px] leading-snug">N.K. Kapur &amp; Co. Pvt. Ltd.</h3>
+<div class="flex items-center space-x-2">
+<span class="font-footnote text-footnote text-secondary text-[13px]">14 Scanned Contacts</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+<span class="material-symbols-outlined text-[12px] mr-0.5 fill-icon" data-icon="check_circle">check_circle</span>
+                    Verified
+                  </span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[20px] mt-1 shrink-0" data-icon="chevron_right">chevron_right</span>
+</div>
+<!-- Divider -->
+<div class="h-[0.5px] bg-[#E5E5EA] my-3 ml-[60px]"></div>
+<!-- Meta Information -->
+<div class="ml-[60px] space-y-1.5">
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-primary" data-icon="link">link</span>
+<span class="text-primary font-normal hover:underline">www.nkkapur.com</span>
+</div>
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-outline" data-icon="location_on">location_on</span>
+<span>Gurugram, India</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Nexus Advisory Group -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-[#E5E5EA] active:bg-surface-container/50 transition-colors duration-150 cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex space-x-3.5 items-start">
+<div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 font-bold flex items-center justify-center font-title-3 text-title-3 text-[18px] shrink-0 border border-purple-100">
+                NA
+              </div>
+<div class="space-y-1">
+<h3 class="font-headline text-headline text-on-surface text-[16px] leading-snug">Nexus Advisory Group</h3>
+<div class="flex items-center space-x-2">
+<span class="font-footnote text-footnote text-secondary text-[13px]">8 Scanned Contacts</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[20px] mt-1 shrink-0" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="h-[0.5px] bg-[#E5E5EA] my-3 ml-[60px]"></div>
+<div class="ml-[60px] space-y-1.5">
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-primary" data-icon="link">link</span>
+<span class="text-primary font-normal hover:underline">www.nexusadvisory.in</span>
+</div>
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-outline" data-icon="location_on">location_on</span>
+<span>Mumbai, India</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Vertex Global Solutions -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-[#E5E5EA] active:bg-surface-container/50 transition-colors duration-150 cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex space-x-3.5 items-start">
+<div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center font-title-3 text-title-3 text-[18px] shrink-0 border border-emerald-100">
+                VG
+              </div>
+<div class="space-y-1">
+<h3 class="font-headline text-headline text-on-surface text-[16px] leading-snug">Vertex Global Solutions</h3>
+<div class="flex items-center space-x-2">
+<span class="font-footnote text-footnote text-secondary text-[13px]">22 Scanned Contacts</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-primary-fixed/30 text-primary border border-primary-fixed/50">
+                    High Activity
+                  </span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[20px] mt-1 shrink-0" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="h-[0.5px] bg-[#E5E5EA] my-3 ml-[60px]"></div>
+<div class="ml-[60px] space-y-1.5">
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-primary" data-icon="link">link</span>
+<span class="text-primary font-normal hover:underline">www.vertexglobal.com</span>
+</div>
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-outline" data-icon="location_on">location_on</span>
+<span>Bengaluru, India</span>
+</div>
+</div>
+</div>
+<!-- Card 4: TechMatrix Industries -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-[#E5E5EA] active:bg-surface-container/50 transition-colors duration-150 cursor-pointer">
+<div class="flex items-start justify-between">
+<div class="flex space-x-3.5 items-start">
+<div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 font-bold flex items-center justify-center font-title-3 text-title-3 text-[18px] shrink-0 border border-amber-100">
+                TM
+              </div>
+<div class="space-y-1">
+<h3 class="font-headline text-headline text-on-surface text-[16px] leading-snug">TechMatrix Industries</h3>
+<div class="flex items-center space-x-2">
+<span class="font-footnote text-footnote text-secondary text-[13px]">5 Scanned Contacts</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[20px] mt-1 shrink-0" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="h-[0.5px] bg-[#E5E5EA] my-3 ml-[60px]"></div>
+<div class="ml-[60px] space-y-1.5">
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-primary" data-icon="link">link</span>
+<span class="text-primary font-normal hover:underline">www.techmatrix.in</span>
+</div>
+<div class="flex items-center text-secondary font-footnote text-footnote text-[13px]">
+<span class="material-symbols-outlined text-[16px] mr-2 text-outline" data-icon="location_on">location_on</span>
+<span>New Delhi, India</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Executive Insight Banner -->
+<div class="mt-4 p-4 rounded-2xl bg-surface-container border border-[#E5E5EA] flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="sync">sync</span>
+</div>
+<div>
+<p class="font-headline text-headline text-[14px] text-on-surface">Auto-enrichment active</p>
+<p class="font-footnote text-footnote text-[12px] text-secondary">3 corporate domains synced today</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="info">info</span>
+</div>
+</main>
+<!-- iOS Native Bottom Tab Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[83px] pb-[34px] px-space-sm bg-surface/85 backdrop-blur-md border-t border-surface-container-highest">
+<!-- Tab 1: Home (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary py-1 scale-95 duration-100 ease-out active:scale-90 active:opacity-60 transition-opacity" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="font-caption-2 text-caption-2 mt-0.5">Home</span>
+</a>
+<!-- Tab 2: Scan (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary py-1 scale-95 duration-100 ease-out active:scale-90 active:opacity-60 transition-opacity" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="document_scanner">document_scanner</span>
+<span class="font-caption-2 text-caption-2 mt-0.5">Scan</span>
+</a>
+<!-- Tab 3: Contacts (Active Directory Intent) -->
+<a class="flex flex-col items-center justify-center text-primary py-1 scale-95 duration-100 ease-out active:scale-90 active:opacity-60 transition-opacity" href="#">
+<span class="material-symbols-outlined text-[24px] fill-icon" data-icon="contacts" style="font-variation-settings: 'FILL' 1;">contacts</span>
+<span class="font-caption-2 text-caption-2 font-medium mt-0.5">Contacts</span>
+</a>
+<!-- Tab 4: Settings (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary py-1 scale-95 duration-100 ease-out active:scale-90 active:opacity-60 transition-opacity" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="settings">settings</span>
+<span class="font-caption-2 text-caption-2 mt-0.5">Settings</span>
+</a>
+</nav>
+<!-- iOS Home Indicator bar -->
+<div class="fixed bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-on-surface/30 rounded-full pointer-events-none z-50"></div>
+</div>
+</body></html>

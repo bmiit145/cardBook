@@ -3,19 +3,24 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users,
   Search,
-  Filter,
   Download,
   Trash2,
   Edit,
   Eye,
   Plus,
-  FileSpreadsheet,
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import { contactService } from '../services/contactService';
 import { formatDateTime } from '../utils/formatters';
+
+function getInitials(name) {
+  if (!name) return 'C';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function Contacts() {
   const navigate = useNavigate();
@@ -25,7 +30,6 @@ export default function Contacts() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [syncStatus, setSyncStatus] = useState('');
   const [successToast, setSuccessToast] = useState(location.state?.successMessage || '');
 
   // Delete modal state
@@ -40,7 +44,6 @@ export default function Contacts() {
         limit: 10,
         q: search,
       };
-      if (syncStatus) params.syncStatus = syncStatus;
 
       const res = await contactService.getContacts(params);
       if (res?.data) {
@@ -58,7 +61,7 @@ export default function Contacts() {
 
   useEffect(() => {
     fetchContacts(1);
-  }, [syncStatus]);
+  }, []);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -88,12 +91,31 @@ export default function Contacts() {
       render: (row) => (
         <div
           onClick={() => navigate(`/contacts/${row.id}`)}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
         >
-          <span style={{ fontWeight: 700, color: '#2563eb' }}>{row.fullName}</span>
-          {row.designation && (
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.designation}</div>
-          )}
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            {getInitials(row.fullName)}
+          </div>
+          <div>
+            <span style={{ fontWeight: 700, color: '#0f172a' }}>{row.fullName}</span>
+            {row.designation && (
+              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.designation}</div>
+            )}
+          </div>
         </div>
       ),
     },
@@ -120,27 +142,6 @@ export default function Contacts() {
       header: 'Email',
       accessor: 'email',
       render: (row) => row.email || '—',
-    },
-    {
-      header: 'Google Sheets',
-      accessor: 'sheetsSyncs',
-      render: (row) => {
-        const sync = row.sheetsSyncs?.[0];
-        const status = sync?.status || 'PENDING';
-        return (
-          <span
-            className={`badge ${
-              status === 'SYNCED'
-                ? 'badge-success'
-                : status === 'FAILED'
-                ? 'badge-danger'
-                : 'badge-warning'
-            }`}
-          >
-            {status}
-          </span>
-        );
-      },
     },
     {
       header: 'Added On',
@@ -284,21 +285,6 @@ export default function Contacts() {
             Search
           </button>
         </form>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Filter size={16} style={{ color: '#64748b' }} />
-          <select
-            className="form-select"
-            style={{ width: 'auto', padding: '8px 12px', fontSize: '0.85rem' }}
-            value={syncStatus}
-            onChange={(e) => setSyncStatus(e.target.value)}
-          >
-            <option value="">All Sync States</option>
-            <option value="SYNCED">Google Sheets: SYNCED</option>
-            <option value="PENDING">Google Sheets: PENDING</option>
-            <option value="FAILED">Google Sheets: FAILED</option>
-          </select>
-        </div>
       </div>
 
       {/* Contacts Data Table */}

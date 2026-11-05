@@ -28,16 +28,6 @@ export const integrationService = {
     return response.data;
   },
 
-  async retryFailedSheetsSync() {
-    const response = await api.post('/integrations/sheets/retry');
-    return response.data;
-  },
-
-  async syncSingleContact(contactId) {
-    const response = await api.post(`/integrations/sheets/sync/${contactId}`);
-    return response.data;
-  },
-
   async getDashboardStats() {
     const response = await api.get('/dashboard/stats');
     return response.data;

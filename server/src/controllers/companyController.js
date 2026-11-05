@@ -128,7 +128,6 @@ async function getCompanyContacts(req, res) {
       },
       include: {
         images: true,
-        sheetsSyncs: true,
       },
       orderBy: { createdAt: 'desc' },
     });

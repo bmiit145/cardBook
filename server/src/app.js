@@ -11,6 +11,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
+const syncRoutes = require('./routes/syncRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -88,6 +89,7 @@ app.use('/api/v1/contacts', contactRoutes);
 app.use('/api/v1/companies', companyRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
+app.use('/api/v1/sync', syncRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Settings - CardScan</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-bright": "#fcf8fb",
+            "tertiary-fixed": "#ffdbcc",
+            "secondary": "#5d5e63",
+            "primary-fixed-dim": "#adc6ff",
+            "secondary-container": "#e0dfe4",
+            "on-error-container": "#93000a",
+            "on-error": "#ffffff",
+            "tertiary": "#9e3d00",
+            "background": "#fcf8fb",
+            "outline": "#717786",
+            "on-secondary-fixed-variant": "#46464b",
+            "on-primary": "#ffffff",
+            "on-tertiary-container": "#fffbff",
+            "secondary-fixed": "#e3e2e7",
+            "on-tertiary-fixed": "#351000",
+            "on-primary-fixed": "#001a41",
+            "surface-dim": "#dcd9dc",
+            "on-surface-variant": "#414755",
+            "surface": "#fcf8fb",
+            "surface-tint": "#005bc1",
+            "surface-container-low": "#f6f3f5",
+            "on-primary-fixed-variant": "#004493",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#626267",
+            "surface-container": "#f0edef",
+            "on-primary-container": "#fefcff",
+            "inverse-primary": "#adc6ff",
+            "on-secondary-fixed": "#1a1b1f",
+            "tertiary-container": "#c64f00",
+            "inverse-surface": "#303032",
+            "on-tertiary-fixed-variant": "#7c2e00",
+            "surface-variant": "#e4e2e4",
+            "error": "#ba1a1a",
+            "on-surface": "#1b1b1d",
+            "tertiary-fixed-dim": "#ffb595",
+            "primary-container": "#0070eb",
+            "on-tertiary": "#ffffff",
+            "inverse-on-surface": "#f3f0f2",
+            "on-secondary": "#ffffff",
+            "on-background": "#1b1b1d",
+            "secondary-fixed-dim": "#c6c6cb",
+            "surface-container-high": "#eae7ea",
+            "primary": "#0058bc",
+            "surface-container-highest": "#e4e2e4",
+            "primary-fixed": "#d8e2ff",
+            "outline-variant": "#c1c6d7",
+            "surface-container-lowest": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1.25rem",
+            "space-md": "0.75rem",
+            "gutter": "1rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "callout": ["Inter"],
+            "body": ["Inter"],
+            "footnote": ["Inter"],
+            "title-2": ["Inter"],
+            "title-1": ["Inter"],
+            "large-title": ["Inter"],
+            "title-3": ["Inter"],
+            "caption-1": ["Inter"],
+            "subheadline": ["Inter"],
+            "caption-2": ["Inter"]
+          },
+          "fontSize": {
+            "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+            "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}],
+            "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+            "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+            "title-2": ["22px", {"lineHeight": "28px", "letterSpacing": "0.35px", "fontWeight": "700"}],
+            "title-1": ["28px", {"lineHeight": "34px", "letterSpacing": "0.36px", "fontWeight": "700"}],
+            "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+            "title-3": ["20px", {"lineHeight": "25px", "letterSpacing": "0.38px", "fontWeight": "600"}],
+            "caption-1": ["12px", {"lineHeight": "16px", "letterSpacing": "0.00px", "fontWeight": "400"}],
+            "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}],
+            "caption-2": ["11px", {"lineHeight": "13px", "letterSpacing": "0.07px", "fontWeight": "500"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+    }
+    body {
+      background-color: #F2F2F7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .ios-switch-knob {
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F2F2F7] text-on-surface antialiased min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Frame Container (Strict Light iOS canvas, 390px baseline) -->
+<div class="w-full max-w-[420px] bg-[#F2F2F7] min-h-screen flex flex-col relative pb-[100px] shadow-sm">
+<!-- Native iOS Status Bar -->
+<header class="w-full pt-3 px-6 pb-2 flex justify-between items-center text-on-surface select-none z-30 sticky top-0 bg-[#F2F2F7]/90 backdrop-blur-md">
+<span class="text-subheadline font-headline font-semibold text-on-surface tracking-tight">9:41</span>
+<div class="flex items-center space-x-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[17px]" data-icon="signal_cellular_4_bar">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[17px]" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="battery_full">battery_full</span>
+</div>
+</header>
+<!-- iOS Large Title Header Area -->
+<section class="w-full px-space-lg pt-2 pb-space-sm flex flex-col justify-end">
+<div class="flex items-center justify-between">
+<h1 class="text-large-title font-large-title text-on-surface tracking-tight">Settings</h1>
+<button aria-label="Search Settings" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary active:opacity-70 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="search">search</span>
+</button>
+</div>
+</section>
+<!-- Main Content Canvas -->
+<main class="w-full px-space-lg flex flex-col gap-5 mt-2">
+<!-- Section 1: User Account Grouped Card -->
+<section aria-label="User Account">
+<div class="bg-surface-container-lowest rounded-[16px] border border-[#E5E5EA] overflow-hidden active:opacity-90 transition-opacity">
+<div class="px-space-lg py-3.5 flex items-center justify-between cursor-pointer">
+<div class="flex items-center space-x-3.5">
+<!-- Avatar -->
+<div class="w-12 h-12 rounded-full bg-[#EBF5FF] text-primary flex items-center justify-center font-headline text-headline font-semibold select-none shrink-0 ring-1 ring-primary/10">
+                AD
+              </div>
+<!-- Credentials & Badge -->
+<div class="flex flex-col text-left">
+<div class="flex items-center gap-2">
+<span class="text-headline font-headline text-on-surface tracking-tight">Administrator</span>
+</div>
+<span class="text-caption-1 font-footnote text-secondary mt-0.5">admin@cardscan.io</span>
+<div class="mt-1.5 flex items-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-2 font-caption-2 bg-[#F2F2F7] text-secondary border border-[#E5E5EA]">
+                    Primary Account
+                  </span>
+</div>
+</div>
+</div>
+<!-- Chevron -->
+<span class="material-symbols-outlined text-[#C7C7CC] text-[20px] select-none" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Section 2: Sync & Storage Status -->
+<section aria-label="Sync and Storage">
+<h2 class="text-caption-1 font-caption-2 font-semibold text-secondary px-2 mb-1.5 uppercase tracking-wider">
+          SYNC &amp; STORAGE
+        </h2>
+<div class="bg-surface-container-lowest rounded-[16px] border border-[#E5E5EA] overflow-hidden">
+<!-- Row 1: Cloud Sync -->
+<div class="min-h-[52px] px-space-lg py-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="cloud_sync">cloud_sync</span>
+</div>
+<div class="flex flex-col">
+<span class="text-body font-body font-medium text-on-surface">Cloud Sync</span>
+<span class="text-caption-1 font-caption-1 text-secondary">Automatic backup active</span>
+</div>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-caption-2 font-caption-2 border border-emerald-200/60">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+<span>Up to date</span>
+</div>
+</div>
+<div class="ml-14 border-t border-[#E5E5EA]"></div>
+<!-- Row 2: Card Recognition -->
+<div class="min-h-[52px] px-space-lg py-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="document_scanner">document_scanner</span>
+</div>
+<div class="flex flex-col">
+<span class="text-body font-body font-medium text-on-surface">Card Recognition</span>
+<span class="text-caption-1 font-caption-1 text-secondary">Smart Text Extraction</span>
+</div>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-caption-2 font-caption-2 border border-emerald-200/60">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span>Active</span>
+</div>
+</div>
+<div class="ml-14 border-t border-[#E5E5EA]"></div>
+<!-- Row 3: Card Media Vault -->
+<div class="min-h-[52px] px-space-lg py-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="lock">lock</span>
+</div>
+<div class="flex flex-col">
+<span class="text-body font-body font-medium text-on-surface">Card Media Vault</span>
+<span class="text-caption-1 font-caption-1 text-secondary">Encrypted Cloud Storage</span>
+</div>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-caption-2 font-caption-2 border border-emerald-200/60">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span>Connected</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Preferences -->
+<section aria-label="Scanning and Export">
+<h2 class="text-caption-1 font-caption-2 font-semibold text-secondary px-2 mb-1.5 uppercase tracking-wider">
+          SCANNING &amp; EXPORT
+        </h2>
+<div class="bg-surface-container-lowest rounded-[16px] border border-[#E5E5EA] overflow-hidden">
+<!-- Row 1: Auto-Detect Card Edges (iOS Switch) -->
+<div class="min-h-[50px] px-space-lg py-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="crop_free">crop_free</span>
+</div>
+<span class="text-body font-body font-medium text-on-surface">Auto-Detect Card Edges</span>
+</div>
+<!-- iOS Standard Switch (Checked State) -->
+<button aria-checked="true" class="w-[51px] h-[31px] bg-[#34C759] rounded-full p-[2px] transition-colors duration-200 ease-in-out focus:outline-none flex items-center justify-end shrink-0 cursor-pointer" role="switch" type="button">
+<span class="w-[27px] h-[27px] bg-white rounded-full ios-switch-knob"></span>
+</button>
+</div>
+<div class="ml-14 border-t border-[#E5E5EA]"></div>
+<!-- Row 2: Duplicate Detection (iOS Switch) -->
+<div class="min-h-[50px] px-space-lg py-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="filter_none">filter_none</span>
+</div>
+<span class="text-body font-body font-medium text-on-surface">Duplicate Detection</span>
+</div>
+<!-- iOS Standard Switch (Checked State) -->
+<button aria-checked="true" class="w-[51px] h-[31px] bg-[#34C759] rounded-full p-[2px] transition-colors duration-200 ease-in-out focus:outline-none flex items-center justify-end shrink-0 cursor-pointer" role="switch" type="button">
+<span class="w-[27px] h-[27px] bg-white rounded-full ios-switch-knob"></span>
+</button>
+</div>
+<div class="ml-14 border-t border-[#E5E5EA]"></div>
+<!-- Row 3: Default Export Format -->
+<div class="min-h-[50px] px-space-lg py-2.5 flex items-center justify-between cursor-pointer active:bg-surface-container-low transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[19px]" data-icon="file_upload">file_upload</span>
+</div>
+<span class="text-body font-body font-medium text-on-surface">Default Export Format</span>
+</div>
+<div class="flex items-center space-x-1">
+<span class="text-body font-body text-[#8E8E93]">vCard / Contacts</span>
+<span class="material-symbols-outlined text-[#C7C7CC] text-[20px] select-none" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Session & Info -->
+<section aria-label="Session Action">
+<div class="bg-surface-container-lowest rounded-[16px] border border-[#E5E5EA] overflow-hidden">
+<button class="w-full min-h-[50px] px-space-lg py-3 flex items-center justify-center space-x-2 text-[#FF3B30] active:bg-red-50/50 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="text-headline font-headline font-medium">Sign Out of CardScan</span>
+</button>
+</div>
+<!-- System Version Info -->
+<p class="text-caption-1 font-footnote text-secondary/70 mt-4 mb-2 text-center tracking-normal">
+          CardScan for iOS • Version 2.4.0 (Build 184)
+        </p>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Executed verbatim from Shared Components JSON logic) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[83px] pb-[34px] px-space-sm bg-surface/85 backdrop-blur-md dark:bg-surface/85 border-t border-surface-container-highest dark:border-surface-container-highest">
+<!-- Destination 1: Home -->
+<a aria-label="Home" class="flex flex-col items-center justify-center text-secondary dark:text-secondary py-1 active:opacity-60 transition-opacity duration-100" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Home</span>
+</a>
+<!-- Destination 2: Scan -->
+<a aria-label="Scan" class="flex flex-col items-center justify-center text-secondary dark:text-secondary py-1 active:opacity-60 transition-opacity duration-100" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="document_scanner">document_scanner</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Scan</span>
+</a>
+<!-- Destination 3: Contacts -->
+<a aria-label="Contacts" class="flex flex-col items-center justify-center text-secondary dark:text-secondary py-1 active:opacity-60 transition-opacity duration-100" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="contacts">contacts</span>
+<span class="text-caption-2 font-caption-2 mt-0.5">Contacts</span>
+</a>
+<!-- Destination 4: Settings (Active Item) -->
+<a aria-current="page" aria-label="Settings" class="flex flex-col items-center justify-center text-primary dark:text-primary py-1 active:opacity-60 transition-opacity duration-100" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="settings" data-weight="fill" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-caption-2 font-caption-2 font-medium text-primary mt-0.5">Settings</span>
+</a>
+</nav>
+</div>
+</body></html>

@@ -3,8 +3,9 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateAdmin } = require('../middleware/authMiddleware');
 const { validateBody } = require('../middleware/validateMiddleware');
-const { loginSchema, changePasswordSchema } = require('../validators/authValidator');
+const { loginSchema, registerSchema, changePasswordSchema } = require('../validators/authValidator');
 
+router.post('/register', validateBody(registerSchema), authController.register);
 router.post('/login', validateBody(loginSchema), authController.login);
 router.post('/logout', authController.logout);
 router.get('/me', authenticateAdmin, authController.getMe);

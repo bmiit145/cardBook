@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import VectorIcon from './VectorIcon';
 import { colors, radii } from '../theme/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -26,8 +27,9 @@ export default function CardPreviewModal({ visible, imageUrl, title = 'Card Prev
       <SafeAreaView style={styles.backdrop}>
         <View style={styles.header}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-            <Text style={styles.closeBtnText}>✕ Close</Text>
+          <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} activeOpacity={0.7}>
+            <VectorIcon name="x" size={14} color="#FFFFFF" />
+            <Text style={styles.closeBtnText}>Close</Text>
           </TouchableOpacity>
         </View>
 

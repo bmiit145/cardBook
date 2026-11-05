@@ -5,7 +5,6 @@ import {
   Building2,
   Scan,
   AlertTriangle,
-  FileSpreadsheet,
   Download,
   ArrowRight,
   Clock,
@@ -16,6 +15,13 @@ import DataTable from '../components/DataTable';
 import { integrationService } from '../services/companyService';
 import { contactService } from '../services/contactService';
 import { formatDate, formatDateTime } from '../utils/formatters';
+
+function getInitials(name) {
+  if (!name) return 'C';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -83,11 +89,30 @@ export default function Dashboard() {
       header: 'Contact Name',
       accessor: 'fullName',
       render: (row) => (
-        <div>
-          <span style={{ fontWeight: 600, color: '#0f172a' }}>{row.fullName}</span>
-          {row.designation && (
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.designation}</div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            {getInitials(row.fullName)}
+          </div>
+          <div>
+            <span style={{ fontWeight: 600, color: '#0f172a' }}>{row.fullName}</span>
+            {row.designation && (
+              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.designation}</div>
+            )}
+          </div>
         </div>
       ),
     },
@@ -105,27 +130,6 @@ export default function Dashboard() {
           <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.email || '—'}</div>
         </div>
       ),
-    },
-    {
-      header: 'Google Sheets',
-      accessor: 'sheetsSyncs',
-      render: (row) => {
-        const sync = row.sheetsSyncs?.[0];
-        const status = sync?.status || 'PENDING';
-        return (
-          <span
-            className={`badge ${
-              status === 'SYNCED'
-                ? 'badge-success'
-                : status === 'FAILED'
-                ? 'badge-danger'
-                : 'badge-warning'
-            }`}
-          >
-            {status}
-          </span>
-        );
-      },
     },
   ];
 
@@ -190,28 +194,25 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Google Sheets Sync Highlight Banner */}
+      {/* Quick Action Banner */}
       <div className="action-banner">
         <div className="action-banner-text">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <FileSpreadsheet size={22} style={{ color: '#38bdf8' }} />
-            <h3 style={{ margin: 0 }}>Google Sheets Contact Register</h3>
+            <Scan size={22} style={{ color: '#38bdf8' }} />
+            <h3 style={{ margin: 0 }}>Business Card Scanning & OCR</h3>
           </div>
           <p>
-            Contacts are automatically synchronized to your central Google Spreadsheet.
-            Synced: <strong style={{ color: '#4ade80' }}>{syncStatus.synced || 0}</strong> ·
-            Pending: <strong style={{ color: '#fbbf24' }}>{syncStatus.pending || 0}</strong> ·
-            Failed: <strong style={{ color: '#f87171' }}>{syncStatus.failed || 0}</strong>
+            Capture and digitize visiting cards with instant AI OCR extraction, automatic field formatting, and secure cloud storage.
           </p>
         </div>
 
         <div className="action-buttons-group">
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/scanner')}
             className="btn btn-secondary btn-sm"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.2)' }}
           >
-            <span>View Integration Status</span>
+            <span>Scan New Card</span>
             <ArrowRight size={14} />
           </button>
         </div>

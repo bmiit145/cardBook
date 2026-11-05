@@ -68,6 +68,26 @@ export async function setCustomServerUrl(url) {
   }
 }
 
+/**
+ * Ensures any image URL (local file URI, remote URL, or relative /uploads path)
+ * is fully resolvable by React Native's Image component.
+ */
+export function getFullMediaUrl(uri, baseApiUrl = null) {
+  if (!uri || typeof uri !== 'string') return null;
+  if (
+    uri.startsWith('http://') ||
+    uri.startsWith('https://') ||
+    uri.startsWith('file://') ||
+    uri.startsWith('content://') ||
+    uri.startsWith('data:')
+  ) {
+    return uri;
+  }
+  const base = (baseApiUrl || cachedServerUrl || DEFAULT_API_URL).replace(/\/api\/v1\/?$/, '');
+  const cleanPath = uri.startsWith('/') ? uri : `/${uri}`;
+  return `${base}${cleanPath}`;
+}
+
 const api = axios.create({
   timeout: 45000, // OCR scans can take a few seconds
 });

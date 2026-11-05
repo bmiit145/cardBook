@@ -20,6 +20,61 @@ function createToken(admin) {
 }
 
 /**
+ * User Registration
+ */
+async function register(req, res) {
+  try {
+    const { name, email, password } = req.body;
+    const db = getDb();
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if user already exists
+    const existing = await db.admin.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existing) {
+      return errorResponse(res, 'An account with this email address already exists. Please log in.', 409);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newUser = await db.admin.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        name: (name || '').trim() || normalizedEmail.split('@')[0],
+      },
+    });
+
+    const token = createToken(newUser);
+
+    res.cookie(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    logger.info(`New user registered successfully: ${newUser.email} (${newUser.id})`);
+
+    return successResponse(res, {
+      token,
+      admin: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+      },
+    }, 'Account created successfully', 201);
+  } catch (error) {
+    logger.error('Registration error', error);
+    return errorResponse(res, 'An error occurred during registration', 500);
+  }
+}
+
+/**
  * Admin Login
  */
 async function login(req, res) {
@@ -131,6 +186,7 @@ async function changePassword(req, res) {
 }
 
 module.exports = {
+  register,
   login,
   logout,
   getMe,

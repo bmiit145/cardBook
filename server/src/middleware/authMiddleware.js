@@ -61,7 +61,46 @@ async function authenticateAdmin(req, res, next) {
   }
 }
 
+/**
+ * Optional Authentication Middleware
+ * Populates req.admin if valid token is provided, but allows guest browsing
+ */
+async function optionalAuth(req, res, next) {
+  try {
+    let token = null;
+    if (req.cookies && req.cookies.admin_token) {
+      token = req.cookies.admin_token;
+    }
+    if (!token && req.headers.authorization) {
+      const parts = req.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+        token = parts[1];
+      }
+    }
+
+    if (token) {
+      const secret = process.env.JWT_SECRET || 'business_card_scanner_jwt_secret_dev_key';
+      const decoded = jwt.verify(token, secret);
+      if (decoded && decoded.id) {
+        const db = getDb();
+        const admin = await db.admin.findUnique({
+          where: { id: decoded.id },
+        });
+        if (admin) {
+          req.admin = {
+            id: admin.id,
+            email: admin.email,
+            name: admin.name,
+          };
+        }
+      }
+    }
+  } catch (_) {}
+  next();
+}
+
 module.exports = {
   authenticateAdmin,
+  optionalAuth,
 };
 

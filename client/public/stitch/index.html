@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CardScan AI — Apple iOS Pure Light Suite (Stitch AI)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+      background-color: #0F1117;
+      color: #F8FAFC;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 360px;
+      background: #161A23;
+      border-right: 1px solid #232836;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .brand-header {
+      padding: 20px;
+      border-bottom: 1px solid #232836;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #007AFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35);
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #FFFFFF;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+
+    .screens-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .screen-item {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+      color: inherit;
+    }
+    .screen-item:hover {
+      background: #1E2330;
+      border-color: #2D3446;
+    }
+    .screen-item.active {
+      background: #1E2330;
+      border-color: #007AFF;
+      box-shadow: 0 4px 14px rgba(0, 122, 255, 0.2);
+    }
+    .screen-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #232836;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+    .screen-item.active .screen-num {
+      background: #007AFF;
+      color: #FFFFFF;
+    }
+    .screen-meta { flex: 1; min-width: 0; }
+    .screen-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #F1F5F9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .screen-desc {
+      font-size: 11px;
+      color: #64748B;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Main Stage */
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0B0D13;
+      overflow: hidden;
+    }
+    .topbar {
+      height: 64px;
+      padding: 0 24px;
+      background: #161A23;
+      border-bottom: 1px solid #232836;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .current-screen-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge-ios {
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(0, 122, 255, 0.15);
+      border: 1px solid #007AFF;
+      color: #007AFF;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .screen-heading {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .view-mode-pill {
+      display: flex;
+      background: #0F1117;
+      border: 1px solid #232836;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .mode-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #94A3B8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .mode-btn.active {
+      background: #007AFF;
+      color: #FFFFFF;
+    }
+    .zoom-ctrl {
+      display: flex;
+      background: #0F1117;
+      border: 1px solid #232836;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .zoom-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #94A3B8;
+      cursor: pointer;
+    }
+    .zoom-btn.active {
+      background: #232836;
+      color: #FFFFFF;
+    }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary {
+      background: #232836;
+      border: 1px solid #2D3446;
+      color: #F8FAFC;
+    }
+    .btn-secondary:hover {
+      background: #2D3446;
+    }
+
+    /* Device Mockup Frame */
+    .viewport-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(circle at center, #161A23 0%, #0B0D13 100%);
+      overflow: auto;
+    }
+    .device-scale-wrapper {
+      transform-origin: center center;
+      transition: transform 0.2s ease;
+    }
+    .device-frame {
+      width: 390px;
+      height: 844px;
+      background: #FFFFFF;
+      border-radius: 50px;
+      box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 0 12px #1E2330, 0 0 0 14px #2D3446;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .device-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 28px;
+      background: #000000;
+      border-radius: 14px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .notch-camera {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #111827;
+      border: 2px solid #222;
+    }
+    .device-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #F2F2F7;
+    }
+    .device-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand-header">
+      <div class="brand-logo">CS</div>
+      <div>
+        <div class="brand-title">CardScan AI</div>
+        <div class="brand-subtitle">Apple iOS 18 Pure Light Suite</div>
+      </div>
+    </div>
+
+    <div class="screens-list" id="screensList">
+      <!-- Injected via JavaScript -->
+    </div>
+  </aside>
+
+  <!-- Main Stage -->
+  <main class="stage">
+    <header class="topbar">
+      <div class="current-screen-info">
+        <span class="badge-ios">iOS 18 HIG</span>
+        <span class="screen-heading" id="currentScreenTitle">Dashboard</span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="view-mode-pill">
+          <button id="modeHtml" class="mode-btn active" onclick="setMode('html')">Interactive HTML</button>
+          <button id="modePng" class="mode-btn" onclick="setMode('png')">Rendered PNG</button>
+        </div>
+
+        <div class="zoom-ctrl">
+          <button class="zoom-btn" onclick="setZoom(0.75)">75%</button>
+          <button class="zoom-btn active" id="z85" onclick="setZoom(0.85)">85%</button>
+          <button class="zoom-btn" onclick="setZoom(1.0)">100%</button>
+        </div>
+
+        <a id="openTabBtn" class="btn btn-secondary" target="_blank" href="01_dashboard.html">
+          New Tab ↗
+        </a>
+      </div>
+    </header>
+
+    <div class="viewport-container">
+      <div class="device-scale-wrapper" id="scaleWrapper" style="transform: scale(0.85);">
+        <div class="device-frame">
+          <div class="device-notch">
+            <div class="notch-camera"></div>
+          </div>
+          <iframe id="screenFrame" class="device-iframe" src="01_dashboard.html"></iframe>
+          <img id="screenImg" class="device-img" src="01_dashboard.png" alt="Screen Render" />
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const screens = [
+      {
+        id: '01_dashboard',
+        name: 'Home & Scanner Hub',
+        desc: 'iOS Large Title, Quick Stats, Inset Contact Cards',
+        html: '01_dashboard.html',
+        png: '01_dashboard.png'
+      },
+      {
+        id: '02_camera_scanner',
+        name: 'Camera Scanner Viewfinder',
+        desc: 'Card Alignment Guide, Shutter Trigger & Flip Lens',
+        html: '02_camera_scanner.html',
+        png: '02_camera_scanner.png'
+      },
+      {
+        id: '03_review_confirmation',
+        name: 'Review & Confirm Contact',
+        desc: 'OCR Confidence Chip, Inset Form, Cloud Sync CTA',
+        html: '03_review_confirmation.html',
+        png: '03_review_confirmation.png'
+      },
+      {
+        id: '04_contact_details',
+        name: 'Executive Contact Profile',
+        desc: '72px Monogram, 4 Quick Actions (Call, Mail, Share)',
+        html: '04_contact_details.html',
+        png: '04_contact_details.png'
+      },
+      {
+        id: '05_contacts_directory',
+        name: 'Contacts Directory',
+        desc: 'Search Bar, Filter Pills, Grouped Contact Cells',
+        html: '05_contacts_directory.html',
+        png: '05_contacts_directory.png'
+      },
+      {
+        id: '06_companies_directory',
+        name: 'Companies Directory',
+        desc: 'Corporate Logo Cards, Contact Counts & Locations',
+        html: '06_companies_directory.html',
+        png: '06_companies_directory.png'
+      },
+      {
+        id: '07_qr_code_scanner',
+        name: 'QR Code vCard Scanner',
+        desc: 'Instant QR Target & Decoded Contact Bottom Sheet',
+        html: '07_qr_code_scanner.html',
+        png: '07_qr_code_scanner.png'
+      },
+      {
+        id: '08_settings_integrations',
+        name: 'Settings & Cloud Telemetry',
+        desc: 'Grouped System Settings, Cloud Sync & Preferences',
+        html: '08_settings_integrations.html',
+        png: '08_settings_integrations.png'
+      }
+    ];
+
+    let activeIdx = 0;
+    let currentMode = 'html';
+    const listEl = document.getElementById('screensList');
+    const frameEl = document.getElementById('screenFrame');
+    const imgEl = document.getElementById('screenImg');
+    const titleEl = document.getElementById('currentScreenTitle');
+    const tabBtn = document.getElementById('openTabBtn');
+    const modeHtmlBtn = document.getElementById('modeHtml');
+    const modePngBtn = document.getElementById('modePng');
+    const scaleWrapper = document.getElementById('scaleWrapper');
+
+    function renderList() {
+      listEl.innerHTML = '';
+      screens.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `screen-item ${idx === activeIdx ? 'active' : ''}`;
+        btn.onclick = () => selectScreen(idx);
+        btn.innerHTML = `
+          <div class="screen-num">${idx + 1}</div>
+          <div class="screen-meta">
+            <div class="screen-name">${s.name}</div>
+            <div class="screen-desc">${s.desc}</div>
+          </div>
+        `;
+        listEl.appendChild(btn);
+      });
+    }
+
+    function selectScreen(idx) {
+      activeIdx = idx;
+      const s = screens[idx];
+      const cacheBust = '?v=' + Date.now();
+      frameEl.src = s.html + cacheBust;
+      imgEl.src = s.png + cacheBust;
+      titleEl.innerText = `${s.name} (${idx + 1} of ${screens.length})`;
+      tabBtn.href = currentMode === 'html' ? s.html : s.png;
+      renderList();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const s = screens[activeIdx];
+      if (mode === 'html') {
+        frameEl.style.display = 'block';
+        imgEl.style.display = 'none';
+        modeHtmlBtn.classList.add('active');
+        modePngBtn.classList.remove('active');
+        tabBtn.href = s.html;
+      } else {
+        frameEl.style.display = 'none';
+        imgEl.style.display = 'block';
+        modePngBtn.classList.add('active');
+        modeHtmlBtn.classList.remove('active');
+        tabBtn.href = s.png;
+      }
+    }
+
+    function setZoom(scale) {
+      scaleWrapper.style.transform = `scale(${scale})`;
+      document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    selectScreen(0);
+  </script>
+</body>
+</html>

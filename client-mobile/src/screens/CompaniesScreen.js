@@ -13,6 +13,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import AppLayout from '../components/AppLayout';
+import VectorIcon from '../components/VectorIcon';
 import { companyService } from '../services/companyService';
 import { colors, radii, shadows } from '../theme/theme';
 
@@ -113,13 +114,16 @@ export default function CompaniesScreen({ navigation }) {
             onPress={() => setIsAddModalOpen(true)}
             activeOpacity={0.85}
           >
-            <Text style={styles.addBtnText}>+ Add Company</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <VectorIcon name="plus" size={13} color="#FFFFFF" />
+              <Text style={styles.addBtnText}>Add Company</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchCard}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <VectorIcon name="search" size={16} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search companies by name..."
@@ -131,7 +135,7 @@ export default function CompaniesScreen({ navigation }) {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearSearch}>✕</Text>
+              <VectorIcon name="x" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -144,7 +148,7 @@ export default function CompaniesScreen({ navigation }) {
           </View>
         ) : companies.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🏢</Text>
+            <VectorIcon name="briefcase" size={32} color={colors.textMuted} style={{ marginBottom: 8 }} />
             <Text style={styles.emptyHeading}>No companies registered yet</Text>
             <Text style={styles.emptySub}>
               Tap '+ Add Company' or scan a card to register a company.
@@ -158,7 +162,7 @@ export default function CompaniesScreen({ navigation }) {
                 <View key={company.id} style={styles.companyCard}>
                   <View style={styles.cardTopRow}>
                     <View style={styles.companyIconBox}>
-                      <Text style={styles.companyIcon}>🏢</Text>
+                      <VectorIcon name="briefcase" size={16} color="#0F172A" />
                     </View>
 
                     <View style={styles.companyInfo}>
@@ -171,29 +175,37 @@ export default function CompaniesScreen({ navigation }) {
                               : `https://${company.website}`;
                             Linking.openURL(url);
                           }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
                         >
-                          <Text style={styles.companyWebsite}>🌐 {company.website}</Text>
+                          <VectorIcon name="globe" size={11} color={colors.primary} />
+                          <Text style={styles.companyWebsite}>{company.website}</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
 
                     <View style={styles.countBadge}>
-                      <Text style={styles.countBadgeText}>
-                        👥 {contactCount} contact{contactCount === 1 ? '' : 's'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <VectorIcon name="users" size={11} color={colors.textSecondary} />
+                        <Text style={styles.countBadgeText}>
+                          {contactCount} contact{contactCount === 1 ? '' : 's'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
                   <View style={styles.cardBottomRow}>
-                    <Text style={styles.locationText}>
-                      📍 {[company.city, company.state, company.country]
-                        .filter(Boolean)
-                        .join(', ') || 'No address specified'}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                      <VectorIcon name="map-pin" size={12} color={colors.textMuted} />
+                      <Text style={styles.locationText} numberOfLines={1}>
+                        {[company.city, company.state, company.country]
+                          .filter(Boolean)
+                          .join(', ') || 'No address specified'}
+                      </Text>
+                    </View>
 
                     <TouchableOpacity
                       style={styles.viewContactsBtn}
-                      onPress={() => navigation.navigate('ContactsTab')}
+                      onPress={() => navigation.navigate('Main', { screen: 'ContactsTab' })}
                       activeOpacity={0.7}
                     >
                       <Text style={styles.viewContactsBtnText}>View Contacts →</Text>
@@ -217,7 +229,7 @@ export default function CompaniesScreen({ navigation }) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Add New Company</Text>
                 <TouchableOpacity onPress={() => setIsAddModalOpen(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
+                  <VectorIcon name="x" size={17} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
 

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Contact Detail - Rachit Kapur | CardScan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-low": "#f6f3f5",
+            "on-secondary-container": "#626267",
+            "on-tertiary-container": "#fffbff",
+            "primary-container": "#0070eb",
+            "on-error-container": "#93000a",
+            "background": "#fcf8fb",
+            "on-tertiary-fixed": "#351000",
+            "secondary-fixed-dim": "#c6c6cb",
+            "on-secondary": "#ffffff",
+            "surface": "#fcf8fb",
+            "inverse-surface": "#303032",
+            "surface-variant": "#e4e2e4",
+            "tertiary-fixed-dim": "#ffb595",
+            "inverse-on-surface": "#f3f0f2",
+            "primary-fixed": "#d8e2ff",
+            "surface-container": "#f0edef",
+            "surface-tint": "#005bc1",
+            "on-primary-container": "#fefcff",
+            "secondary-container": "#e0dfe4",
+            "on-tertiary-fixed-variant": "#7c2e00",
+            "on-error": "#ffffff",
+            "primary-fixed-dim": "#adc6ff",
+            "error-container": "#ffdad6",
+            "secondary-fixed": "#e3e2e7",
+            "tertiary-container": "#c64f00",
+            "on-primary-fixed-variant": "#004493",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed": "#001a41",
+            "inverse-primary": "#adc6ff",
+            "on-secondary-fixed-variant": "#46464b",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed": "#ffdbcc",
+            "outline": "#717786",
+            "on-surface-variant": "#414755",
+            "surface-bright": "#fcf8fb",
+            "on-surface": "#1b1b1d",
+            "secondary": "#5d5e63",
+            "on-background": "#1b1b1d",
+            "error": "#ba1a1a",
+            "outline-variant": "#c1c6d7",
+            "surface-dim": "#dcd9dc",
+            "on-secondary-fixed": "#1a1b1f",
+            "primary": "#0058bc",
+            "surface-container-highest": "#e4e2e4",
+            "surface-container-high": "#eae7ea",
+            "on-primary": "#ffffff",
+            "tertiary": "#9e3d00"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "gutter": "1rem",
+            "space-xl": "1.25rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            "space-md": "0.75rem",
+            "margin": "1rem"
+          },
+          "fontFamily": {
+            "title-3": ["Inter"],
+            "body": ["Inter"],
+            "title-2": ["Inter"],
+            "large-title": ["Inter"],
+            "headline": ["Inter"],
+            "footnote": ["Inter"],
+            "title-1": ["Inter"],
+            "callout": ["Inter"],
+            "subheadline": ["Inter"],
+            "caption-1": ["Inter"],
+            "caption-2": ["Inter"]
+          },
+          "fontSize": {
+            "title-3": ["20px", { lineHeight: "25px", letterSpacing: "0.38px", fontWeight: "600" }],
+            "body": ["17px", { lineHeight: "22px", letterSpacing: "-0.41px", fontWeight: "400" }],
+            "title-2": ["22px", { lineHeight: "28px", letterSpacing: "0.35px", fontWeight: "700" }],
+            "large-title": ["34px", { lineHeight: "41px", letterSpacing: "0.37px", fontWeight: "700" }],
+            "headline": ["17px", { lineHeight: "22px", letterSpacing: "-0.41px", fontWeight: "600" }],
+            "footnote": ["13px", { lineHeight: "18px", letterSpacing: "-0.08px", fontWeight: "400" }],
+            "title-1": ["28px", { lineHeight: "34px", letterSpacing: "0.36px", fontWeight: "700" }],
+            "callout": ["16px", { lineHeight: "21px", letterSpacing: "-0.32px", fontWeight: "400" }],
+            "subheadline": ["15px", { lineHeight: "20px", letterSpacing: "-0.24px", fontWeight: "400" }],
+            "caption-1": ["12px", { lineHeight: "16px", letterSpacing: "0.00px", fontWeight: "400" }],
+            "caption-2": ["11px", { lineHeight: "13px", letterSpacing: "0.07px", fontWeight: "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #F2F2F7;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .ios-card {
+      background-color: #FFFFFF;
+      border-radius: 16px;
+      border: 0.5px solid #E5E5EA;
+    }
+    .ios-hairline {
+      border-bottom: 0.5px solid #E5E5EA;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F2F2F7] text-on-surface min-h-screen flex flex-col justify-between selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- iOS System Status & Top Navigation Bar (Task-focused sub-page with Back action) -->
+<header class="sticky top-0 z-40 w-full bg-white/85 backdrop-blur-xl border-b border-[#E5E5EA]">
+<!-- Safe Area Mock / Top bar space -->
+<div class="h-2 w-full"></div>
+<div class="max-w-md mx-auto px-4 h-11 flex items-center justify-between">
+<!-- Back Navigation Button -->
+<button class="inline-flex items-center gap-0.5 text-primary text-body font-body active:opacity-60 transition-opacity -ml-1.5 focus:outline-none">
+<span class="material-symbols-outlined text-[24px]">chevron_left</span>
+<span>Contacts</span>
+</button>
+<!-- Center Title -->
+<div class="text-headline font-headline text-on-surface tracking-tight opacity-90">
+        Contact Info
+      </div>
+<!-- Trailing Action -->
+<button class="text-primary text-headline font-headline active:opacity-60 transition-opacity focus:outline-none">
+        Edit
+      </button>
+</div>
+</header>
+<!-- Main Scrollable Canvas -->
+<main class="w-full max-w-md mx-auto px-4 pb-28 pt-2">
+<!-- Profile Hero Header -->
+<section class="flex flex-col items-center text-center mt-3 mb-6">
+<!-- 72px Circular Monogram Avatar -->
+<div class="w-[72px] h-[72px] rounded-full bg-primary/10 flex items-center justify-center mb-3 ring-1 ring-primary/20 shadow-sm">
+<span class="text-title-1 font-title-1 text-primary">RK</span>
+</div>
+<!-- Full Name -->
+<h1 class="text-title-1 font-title-1 text-on-surface tracking-tight mb-1">
+        Rachit Kapur
+      </h1>
+<!-- Designation -->
+<p class="text-subheadline font-subheadline text-secondary mb-2">
+        Director
+      </p>
+<!-- Company Pill Badge -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/60 border border-[#E5E5EA]">
+<span class="material-symbols-outlined text-secondary text-[16px]">domain</span>
+<span class="text-footnote font-footnote text-on-surface font-medium">N.K. Kapur &amp; Co. Pvt. Ltd.</span>
+</div>
+</section>
+<!-- Quick Action Dock (iOS circular action buttons) -->
+<section class="grid grid-cols-4 gap-3 mb-6 px-1">
+<!-- Action: Call -->
+<button class="flex flex-col items-center gap-1.5 group focus:outline-none">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm border border-[#E5E5EA] flex items-center justify-center text-primary group-active:scale-95 group-active:bg-surface-container transition-all duration-100">
+<span class="material-symbols-outlined text-[22px]">call</span>
+</div>
+<span class="text-caption-2 font-caption-2 text-secondary group-active:text-on-surface">Call</span>
+</button>
+<!-- Action: Message -->
+<button class="flex flex-col items-center gap-1.5 group focus:outline-none">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm border border-[#E5E5EA] flex items-center justify-center text-primary group-active:scale-95 group-active:bg-surface-container transition-all duration-100">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+</div>
+<span class="text-caption-2 font-caption-2 text-secondary group-active:text-on-surface">Message</span>
+</button>
+<!-- Action: Email -->
+<button class="flex flex-col items-center gap-1.5 group focus:outline-none">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm border border-[#E5E5EA] flex items-center justify-center text-primary group-active:scale-95 group-active:bg-surface-container transition-all duration-100">
+<span class="material-symbols-outlined text-[22px]">mail</span>
+</div>
+<span class="text-caption-2 font-caption-2 text-secondary group-active:text-on-surface">Email</span>
+</button>
+<!-- Action: Share -->
+<button class="flex flex-col items-center gap-1.5 group focus:outline-none">
+<div class="w-12 h-12 rounded-full bg-white shadow-sm border border-[#E5E5EA] flex items-center justify-center text-primary group-active:scale-95 group-active:bg-surface-container transition-all duration-100">
+<span class="material-symbols-outlined text-[22px]">share</span>
+</div>
+<span class="text-caption-2 font-caption-2 text-secondary group-active:text-on-surface">Share</span>
+</button>
+</section>
+<!-- Grouped Content Lists -->
+<div class="space-y-4">
+<!-- Card 1: Phone Numbers -->
+<div>
+<div class="px-4 pb-1 text-footnote font-footnote text-secondary uppercase tracking-wide">Phone</div>
+<div class="ios-card overflow-hidden">
+<!-- Row: Mobile -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors ios-hairline">
+<div class="flex flex-col">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Mobile</span>
+<span class="text-body font-body font-semibold text-on-surface tracking-tight mt-0.5">+91 88008 88473</span>
+</div>
+<div class="flex items-center gap-3 text-secondary">
+<button class="p-1 hover:text-primary active:opacity-60 transition-colors focus:outline-none" title="Copy Number">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+<button class="p-1 hover:text-primary active:opacity-60 transition-colors focus:outline-none" title="Dial Call">
+<span class="material-symbols-outlined text-[20px] text-primary">call</span>
+</button>
+</div>
+</div>
+<!-- Row: Office -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors">
+<div class="flex flex-col">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Office</span>
+<span class="text-body font-body font-semibold text-on-surface tracking-tight mt-0.5">+91 124 4567890</span>
+</div>
+<div class="flex items-center gap-3 text-secondary">
+<button class="p-1 hover:text-primary active:opacity-60 transition-colors focus:outline-none" title="Copy Number">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: Email & Digital -->
+<div>
+<div class="px-4 pb-1 text-footnote font-footnote text-secondary uppercase tracking-wide">Internet &amp; Digital</div>
+<div class="ios-card overflow-hidden">
+<!-- Row: Email -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors ios-hairline">
+<div class="flex flex-col">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Email</span>
+<a class="text-body font-body text-primary font-medium tracking-tight mt-0.5 hover:underline" href="mailto:rachitkapur@gmail.com">
+                rachitkapur@gmail.com
+              </a>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[20px]">alternate_email</span>
+</div>
+<!-- Row: Website -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors">
+<div class="flex flex-col">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Website</span>
+<a class="text-body font-body text-primary font-medium tracking-tight mt-0.5 hover:underline" href="https://www.nkkapur.com" rel="noopener" target="_blank">
+                www.nkkapur.com
+              </a>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[20px]">open_in_new</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Physical Addresses & Locations -->
+<div>
+<div class="px-4 pb-1 text-footnote font-footnote text-secondary uppercase tracking-wide">Addresses</div>
+<div class="ios-card overflow-hidden">
+<!-- Row: Head Office -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors ios-hairline">
+<div class="flex flex-col pr-2">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Head Office</span>
+<span class="text-body font-body text-on-surface tracking-tight mt-0.5">Gurugram, Haryana, India</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+</div>
+</div>
+<!-- Row: Branch Office -->
+<div class="flex items-center justify-between px-4 py-3 active:bg-surface-container-low transition-colors">
+<div class="flex flex-col pr-2">
+<span class="text-caption-1 font-caption-1 text-secondary uppercase font-medium">Branch Office</span>
+<span class="text-body font-body text-on-surface tracking-tight mt-0.5">Mumbai &amp; Kolkata, India</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">domain_add</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 4: Scanned Card Photo Thumbnail & OCR -->
+<div>
+<div class="px-4 pb-1 text-footnote font-footnote text-secondary uppercase tracking-wide">CardScan Capture</div>
+<div class="ios-card p-3.5">
+<div class="flex items-center gap-3">
+<!-- Scanned Card Preview Thumbnail -->
+<div class="w-20 h-14 rounded-lg bg-surface-container border border-[#E5E5EA] overflow-hidden flex-shrink-0 shadow-sm relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Close up photograph of a clean, premium off-white corporate business card with elegant typography reading Rachit Kapur, Director of N.K. Kapur and Co, shot under bright studio light in an executive architectural office setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaIUgjc9_vDz4dq30z4R5kFc_zgMwkRYRb6524o4lOHOaiuw-ZNfldba_W3hJVVA97gRShQUTth2vk8Xtd0S1x2YDGYZJKW_5M6ixIdXpH5zSnV2Hca4Fw3jOH8VMwSwAWHjxqarAriry4Jb3qq6WNQtOEEtwXiXbfWc1XKYfGoN5TAsxXvDnQ_ZwTz0DGIE46PZjhJuNp1-8-kNTDTGj9COuac2ERFnWp9kcTfVB3PCC2njSSF2iDUQrgRN8ahSZgiaoB2jlsgbn6"/>
+<div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<!-- Card Metadata & AI Badge -->
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-caption-2 font-caption-2 font-medium border border-emerald-200">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  AI Verified
+                </span>
+<span class="text-caption-2 font-caption-2 text-secondary">CardScan OCR</span>
+</div>
+<button class="inline-flex items-center gap-1 text-primary text-subheadline font-subheadline font-medium hover:underline text-left">
+<span>View Original Card</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Docked Bottom Action Area (HIG compliant button dock) -->
+<footer class="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-t border-[#E5E5EA]">
+<div class="max-w-md mx-auto px-4 pt-3 pb-8">
+<button class="w-full h-[50px] bg-primary text-on-primary font-headline text-headline rounded-xl shadow-sm flex items-center justify-center gap-2 active:opacity-85 transition-opacity focus:outline-none">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+<span>Export to Device Contacts</span>
+</button>
+</div>
+</footer>
+</body></html>

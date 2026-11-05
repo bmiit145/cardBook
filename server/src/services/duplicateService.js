@@ -12,14 +12,20 @@ function normalizePhone(str) {
  * Check if contact data matches any existing non-deleted contact
  * 
  * @param {object} contactData - { phone, email, fullName, company, excludeId }
+ * @param {string|null} userId - optional user ID for tenant isolation
  * @returns {Promise<{isDuplicate: boolean, duplicates: Array<{contact: object, matchReason: string}>}>}
  */
-async function checkDuplicateContact(contactData) {
+async function checkDuplicateContact(contactData, userId = null) {
   const db = getDb();
   const { phone, email, fullName, company, excludeId } = contactData;
 
+  const where = { isDeleted: false };
+  if (userId) {
+    where.userId = userId;
+  }
+
   const allContacts = await db.businessContact.findMany({
-    where: { isDeleted: false },
+    where,
     include: { company: true },
   });
 

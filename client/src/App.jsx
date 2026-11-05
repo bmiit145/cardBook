@@ -71,8 +71,22 @@ function AppLayout() {
         />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/scanner" element={<Scanner />} />
-          <Route path="/review" element={<ContactReview />} />
+          <Route
+            path="/scanner"
+            element={
+              <ProtectedRoute>
+                <Scanner />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/review"
+            element={
+              <ProtectedRoute>
+                <ContactReview />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/contacts/:id" element={<ContactDetails />} />
           <Route path="/companies" element={<Companies />} />
@@ -90,14 +104,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/*" element={<AppLayout />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

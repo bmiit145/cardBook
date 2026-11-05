@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import VectorIcon from './VectorIcon';
 import { colors, radii, shadows } from '../theme/theme';
 
 export default function StatCard({
@@ -7,37 +8,8 @@ export default function StatCard({
   value,
   subtitle,
   icon,
-  variant = 'blue',
   onPress,
 }) {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'green':
-        return {
-          wrapperBg: colors.successLight,
-          textColor: colors.successDark,
-        };
-      case 'amber':
-        return {
-          wrapperBg: colors.warningLight,
-          textColor: colors.warningDark,
-        };
-      case 'purple':
-        return {
-          wrapperBg: colors.purpleLight,
-          textColor: colors.purple,
-        };
-      case 'blue':
-      default:
-        return {
-          wrapperBg: colors.primaryLight,
-          textColor: colors.primary,
-        };
-    }
-  };
-
-  const v = getVariantStyles();
-
   return (
     <TouchableOpacity
       style={styles.card}
@@ -52,8 +24,8 @@ export default function StatCard({
       </View>
 
       {icon ? (
-        <View style={[styles.iconWrapper, { backgroundColor: v.wrapperBg }]}>
-          <Text style={[styles.iconText, { color: v.textColor }]}>{icon}</Text>
+        <View style={styles.iconWrapper}>
+          <VectorIcon name={icon} size={18} color="#334155" />
         </View>
       ) : null}
     </TouchableOpacity>
@@ -66,11 +38,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.lg,
-    padding: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
     ...shadows.sm,
   },
   content: {
@@ -81,30 +53,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   value: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: colors.textPrimary,
-    lineHeight: 32,
+    lineHeight: 30,
   },
   subtitle: {
     fontSize: 11,
     color: colors.textMuted,
-    marginTop: 6,
+    marginTop: 4,
   },
   iconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
+    width: 36,
+    height: 36,
+    borderRadius: radii.sm,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconText: {
-    fontSize: 20,
-  },
 });
-

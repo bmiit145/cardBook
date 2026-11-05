@@ -66,33 +66,25 @@
 }
 
 .stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
 }
 
-.stat-icon-blue {
-  background: var(--primary-light);
-  color: var(--primary);
-}
-
-.stat-icon-green {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.stat-icon-amber {
-  background: var(--warning-light);
-  color: var(--warning);
-}
-
+.stat-icon-blue,
+.stat-icon-green,
+.stat-icon-amber,
 .stat-icon-purple {
-  background: #f5f3ff;
-  color: #7c3aed;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
 }
 
 /* Quick Actions & Sync Banner */

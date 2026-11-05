@@ -12,26 +12,41 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii, shadows } from '../theme/theme';
 import { useAuth } from '../context/AuthContext';
+import VectorIcon from './VectorIcon';
 
 export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 'Dashboard' }) {
   const { admin, logout } = useAuth();
 
   const handleLogout = async () => {
     onClose();
-    await logout();
+    try {
+      await logout();
+    } catch (_) {}
+    if (navigation) {
+      navigation.navigate('Main', { screen: 'HomeTab' });
+    }
   };
 
   const navItems = [
-    { label: 'Dashboard', route: 'DashboardTab', icon: '📊' },
-    { label: 'Card Scanner', route: 'ScanTab', icon: '📷' },
-    { label: 'Contacts', route: 'ContactsTab', icon: '👥' },
-    { label: 'Companies', route: 'CompaniesTab', icon: '🏢' },
-    { label: 'Integrations & Settings', route: 'SettingsTab', icon: '⚙️' },
+    { label: 'Contacts Directory', route: 'ContactsTab', icon: 'users' },
+    { label: 'Card Scanner', route: 'ScanTab', icon: 'camera' },
+    { label: 'QR Code Scanner', route: 'QrTab', icon: 'qr' },
+    { label: 'Companies', route: 'CompaniesTab', icon: 'briefcase' },
+    { label: 'Dashboard & Stats', route: 'DashboardTab', icon: 'sliders' },
+    { label: 'Settings & Export', route: 'SettingsTab', icon: 'settings' },
   ];
 
   const handleNavigate = (route) => {
     onClose();
-    if (navigation) {
+    if (!navigation) return;
+
+    if (route === 'HomeTab' || route === 'DashboardTab') {
+      navigation.navigate('Main', { screen: 'HomeTab' });
+    } else if (route === 'ContactsTab') {
+      navigation.navigate('Main', { screen: 'ContactsTab' });
+    } else if (route === 'ScanTab') {
+      navigation.navigate('Main', { screen: 'ScanTab' });
+    } else {
       navigation.navigate(route);
     }
   };
@@ -53,10 +68,10 @@ export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 
           <View style={styles.drawerHeader}>
             <View style={styles.brandGroup}>
               <View style={styles.logoBadge}>
-                <Text style={styles.logoIcon}>💳</Text>
+                <VectorIcon name="camera" size={17} color="#FFFFFF" />
               </View>
               <View>
-                <Text style={styles.brandTitle}>CardScan AI</Text>
+                <Text style={styles.brandTitle}>CardBook</Text>
                 <Text style={styles.brandSubtitle}>Admin Portal</Text>
               </View>
             </View>
@@ -66,7 +81,7 @@ export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 
               style={styles.closeBtn}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <VectorIcon name="x" size={16} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -77,7 +92,7 @@ export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 
               onPress={() => handleNavigate('ScanTab')}
               activeOpacity={0.85}
             >
-              <Text style={styles.quickScanIcon}>📷</Text>
+              <VectorIcon name="camera" size={16} color="#FFFFFF" />
               <Text style={styles.quickScanText}>Scan Visiting Card</Text>
             </TouchableOpacity>
           </View>
@@ -94,7 +109,11 @@ export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 
                     onPress={() => handleNavigate(item.route)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.navItemIcon}>{item.icon}</Text>
+                    <VectorIcon
+                      name={item.icon}
+                      size={18}
+                      color={isActive ? '#0F172A' : '#64748B'}
+                    />
                     <Text
                       style={[
                         styles.navItemText,
@@ -129,7 +148,7 @@ export default function AppSidebar({ isOpen, onClose, navigation, activeRoute = 
                 activeOpacity={0.7}
                 title="Logout"
               >
-                <Text style={styles.logoutBtnText}>🚪</Text>
+                <VectorIcon name="log-out" size={16} color="#EF4444" />
               </TouchableOpacity>
             </View>
           </View>

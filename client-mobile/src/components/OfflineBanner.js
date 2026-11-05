@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNetwork } from '../context/NetworkContext';
+import VectorIcon from './VectorIcon';
 import { colors, radii } from '../theme/theme';
 
 export default function OfflineBanner() {
@@ -19,7 +20,7 @@ export default function OfflineBanner() {
   if (!isOnline) {
     return (
       <View style={styles.offlineBanner}>
-        <Text style={styles.offlineEmoji}>⚡</Text>
+        <VectorIcon name="alert" size={14} color="#D97706" />
         <Text style={styles.offlineText}>
           Offline Mode: Cards are saved locally and will auto-sync when reconnected.
         </Text>
@@ -31,7 +32,7 @@ export default function OfflineBanner() {
     return (
       <View style={styles.pendingBanner}>
         <View style={styles.pendingLeft}>
-          <Text style={styles.pendingEmoji}>⏳</Text>
+          <VectorIcon name="rotate" size={14} color="#0F172A" />
           <Text style={styles.pendingText}>
             {pendingCount} offline {pendingCount === 1 ? 'card' : 'cards'} awaiting cloud sync
           </Text>
@@ -46,7 +47,10 @@ export default function OfflineBanner() {
           {isSyncing ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.syncBtnText}>Sync Now 🔄</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <VectorIcon name="rotate" size={11} color="#FFFFFF" />
+              <Text style={styles.syncBtnText}>Sync Now</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>

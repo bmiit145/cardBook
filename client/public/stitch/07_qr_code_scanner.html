@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>CardScan - QR Business Card Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed-dim": "#adc6ff",
+            "secondary-container": "#e0dfe4",
+            "surface-container-high": "#eae7ea",
+            "tertiary-container": "#c64f00",
+            "surface-variant": "#e4e2e4",
+            "secondary-fixed": "#e3e2e7",
+            "surface-container": "#f0edef",
+            "secondary": "#5d5e63",
+            "on-tertiary-fixed": "#351000",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#001a41",
+            "inverse-on-surface": "#f3f0f2",
+            "surface-container-lowest": "#ffffff",
+            "tertiary-fixed-dim": "#ffb595",
+            "on-tertiary-fixed-variant": "#7c2e00",
+            "surface-dim": "#dcd9dc",
+            "on-secondary-fixed": "#1a1b1f",
+            "on-primary-fixed-variant": "#004493",
+            "tertiary-fixed": "#ffdbcc",
+            "outline-variant": "#c1c6d7",
+            "on-tertiary": "#ffffff",
+            "surface-bright": "#fcf8fb",
+            "on-surface": "#1b1b1d",
+            "surface-container-low": "#f6f3f5",
+            "surface-container-highest": "#e4e2e4",
+            "on-secondary-container": "#626267",
+            "primary": "#0058bc",
+            "secondary-fixed-dim": "#c6c6cb",
+            "tertiary": "#9e3d00",
+            "error-container": "#ffdad6",
+            "error": "#ba1a1a",
+            "on-background": "#1b1b1d",
+            "inverse-primary": "#adc6ff",
+            "primary-fixed": "#d8e2ff",
+            "on-tertiary-container": "#fffbff",
+            "on-error-container": "#93000a",
+            "background": "#fcf8fb",
+            "surface-tint": "#005bc1",
+            "surface": "#fcf8fb",
+            "primary-container": "#0070eb",
+            "on-surface-variant": "#414755",
+            "on-primary-container": "#fefcff",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed-variant": "#46464b",
+            "inverse-surface": "#303032",
+            "outline": "#717786"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "0.75rem",
+            "gutter": "1rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            "margin": "1rem",
+            "space-xl": "1.25rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "caption-2": ["Inter"],
+            "footnote": ["Inter"],
+            "body": ["Inter"],
+            "title-3": ["Inter"],
+            "subheadline": ["Inter"],
+            "title-1": ["Inter"],
+            "large-title": ["Inter"],
+            "title-2": ["Inter"],
+            "caption-1": ["Inter"],
+            "callout": ["Inter"]
+          },
+          "fontSize": {
+            "headline": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "600"}],
+            "caption-2": ["11px", {"lineHeight": "13px", "letterSpacing": "0.07px", "fontWeight": "500"}],
+            "footnote": ["13px", {"lineHeight": "18px", "letterSpacing": "-0.08px", "fontWeight": "400"}],
+            "body": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.41px", "fontWeight": "400"}],
+            "title-3": ["20px", {"lineHeight": "25px", "letterSpacing": "0.38px", "fontWeight": "600"}],
+            "subheadline": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.24px", "fontWeight": "400"}],
+            "title-1": ["28px", {"lineHeight": "34px", "letterSpacing": "0.36px", "fontWeight": "700"}],
+            "large-title": ["34px", {"lineHeight": "41px", "letterSpacing": "0.37px", "fontWeight": "700"}],
+            "title-2": ["22px", {"lineHeight": "28px", "letterSpacing": "0.35px", "fontWeight": "700"}],
+            "caption-1": ["12px", {"lineHeight": "16px", "letterSpacing": "0.00px", "fontWeight": "400"}],
+            "callout": ["16px", {"lineHeight": "21px", "letterSpacing": "-0.32px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @keyframes scanAnimation {
+      0% { top: 6%; opacity: 0.15; }
+      15% { opacity: 0.9; }
+      85% { opacity: 0.9; }
+      100% { top: 92%; opacity: 0.15; }
+    }
+    .scan-beam {
+      animation: scanAnimation 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    }
+    /* iOS Custom Shadow */
+    .ios-sheet-shadow {
+      box-shadow: 0 -10px 40px -10px rgba(0, 0, 0, 0.08), 0 -2px 10px 0 rgba(0, 0, 0, 0.03);
+    }
+    .ios-target-corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: #0070eb;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F2F2F7] text-on-surface antialiased select-none font-body min-h-screen flex justify-center items-center p-0 md:p-6">
+<!-- iOS Simulated Device Shell -->
+<main class="w-full max-w-[428px] h-[884px] md:h-[890px] bg-[#F2F2F7] md:rounded-[52px] md:shadow-2xl overflow-hidden relative flex flex-col border border-surface-container-highest">
+<!-- 1. iOS Native Status Bar -->
+<header class="w-full z-40 bg-surface/85 backdrop-blur-md pt-3 px-7 pb-1 flex justify-between items-center text-on-surface">
+<span class="text-subheadline font-headline font-semibold tracking-tight text-[15px]">9:41</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[17px] text-on-surface" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[17px] text-on-surface" data-icon="wifi">wifi</span>
+<div class="flex items-center ml-0.5">
+<div class="w-5 h-[11px] border border-on-surface/80 rounded-[3px] p-[1px] flex items-center">
+<div class="h-full w-full bg-on-surface rounded-[1.5px]"></div>
+</div>
+<div class="w-[1.5px] h-[4px] bg-on-surface/80 rounded-r-[1px] -ml-[0.5px]"></div>
+</div>
+</div>
+</header>
+<!-- 2. Top Navigation Bar (Frosted Translucent Header) -->
+<nav class="w-full z-30 bg-surface/85 backdrop-blur-md px-space-lg pt-1 pb-3 flex items-center justify-between border-b border-surface-container-highest">
+<!-- Close Dismiss Button -->
+<button aria-label="Dismiss scan" class="w-9 h-9 rounded-full bg-surface-container-lowest flex items-center justify-center border border-outline-variant/30 active:opacity-60 transition-opacity" type="button">
+<span class="material-symbols-outlined text-secondary text-[20px]" data-icon="close">close</span>
+</button>
+<!-- Center Title & Subtitle Badge -->
+<div class="text-center flex flex-col items-center">
+<h1 class="text-headline font-headline text-on-surface">Scan QR Card</h1>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-caption-2 font-caption-2 text-secondary">vCard &amp; Contact QR Detection</span>
+</div>
+</div>
+<!-- Flashlight / Torch Action Button -->
+<button aria-label="Toggle flashlight" class="w-9 h-9 rounded-full bg-surface-container-lowest flex items-center justify-center border border-outline-variant/30 text-secondary active:opacity-60 transition-opacity" id="torchBtn" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="flashlight_on">flashlight_on</span>
+</button>
+</nav>
+<!-- Segmented Filter Control (HIG Standard) -->
+<section aria-label="Scan Mode Select" class="px-space-lg pt-2 pb-2 bg-surface/85 backdrop-blur-md z-20">
+<div class="bg-surface-container-high/90 p-[2px] rounded-[9px] h-8 flex items-center">
+<button class="flex-1 h-[28px] rounded-[7px] bg-surface-container-lowest shadow-[0_2px_4px_rgba(0,0,0,0.06),0_1px_1px_rgba(0,0,0,0.04)] text-caption-1 font-headline text-on-surface text-center flex items-center justify-center transition-all" type="button">
+          vCard QR
+        </button>
+<button class="flex-1 h-[28px] rounded-[7px] text-caption-1 font-footnote text-secondary text-center flex items-center justify-center active:opacity-60 transition-all" type="button">
+          LinkedIn QR
+        </button>
+<button class="flex-1 h-[28px] rounded-[7px] text-caption-1 font-footnote text-secondary text-center flex items-center justify-center active:opacity-60 transition-all" type="button">
+          Digital Badge
+        </button>
+</div>
+</section>
+<!-- 3. Camera Viewfinder Area (Bright Light-Mode High-Key Texture) -->
+<div class="relative flex-1 w-full bg-[#EAE8EF] overflow-hidden flex flex-col items-center justify-start pt-6">
+<!-- High-Key Studio Backdrop Texture (Light Mode Camera Simulation) -->
+<div class="absolute inset-0 bg-gradient-to-b from-[#F2F1F6] via-[#E8E6ED] to-[#DDD9E4] opacity-90"></div>
+<!-- Subtle Optical Light Glow -->
+<div class="absolute w-[360px] h-[360px] rounded-full bg-white/40 blur-3xl pointer-events-none top-8"></div>
+<!-- Ready to Scan Status Pill -->
+<div class="relative z-10 mb-4 inline-flex items-center gap-2 bg-surface-container-lowest/90 backdrop-blur-md border border-outline-variant/40 px-3.5 py-1 rounded-full shadow-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-caption-1 font-headline text-on-surface">Ready to Scan</span>
+</div>
+<!-- Viewfinder Target Reticle Frame -->
+<div class="relative z-10 w-[240px] h-[240px] rounded-3xl bg-surface-container-lowest/20 backdrop-blur-[2px] border border-white/60 shadow-[inset_0_0_16px_rgba(255,255,255,0.4)] flex items-center justify-center">
+<!-- Target Framing Brackets (Corners) -->
+<!-- Top Left -->
+<span class="ios-target-corner top-[-2px] left-[-2px] border-t-[3.5px] border-l-[3.5px] rounded-tl-2xl"></span>
+<!-- Top Right -->
+<span class="ios-target-corner top-[-2px] right-[-2px] border-t-[3.5px] border-r-[3.5px] rounded-tr-2xl"></span>
+<!-- Bottom Left -->
+<span class="ios-target-corner bottom-[-2px] left-[-2px] border-b-[3.5px] border-l-[3.5px] rounded-bl-2xl"></span>
+<!-- Bottom Right -->
+<span class="ios-target-corner bottom-[-2px] right-[-2px] border-b-[3.5px] border-r-[3.5px] rounded-br-2xl"></span>
+<!-- Faint Simulated Business Card Guide Grid inside reticle -->
+<div class="w-[180px] h-[116px] rounded-xl border border-dashed border-primary-container/40 bg-white/10 flex flex-col justify-between p-2.5">
+<div class="flex items-center justify-between opacity-50">
+<div class="w-6 h-6 rounded-md border border-primary-container/60 flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-primary-container" data-icon="qr_code_2">qr_code_2</span>
+</div>
+<div class="w-12 h-1.5 bg-primary-container/30 rounded-full"></div>
+</div>
+<div class="space-y-1 opacity-40">
+<div class="w-24 h-1.5 bg-on-surface/40 rounded-full"></div>
+<div class="w-16 h-1 bg-on-surface/30 rounded-full"></div>
+</div>
+</div>
+<!-- Scanning Active Laser Beam -->
+<div class="scan-beam absolute left-3 right-3 h-[2.5px] bg-gradient-to-r from-transparent via-primary-container to-transparent shadow-[0_0_8px_#0070eb] rounded-full pointer-events-none"></div>
+</div>
+<!-- Contextual Subtitle Instruction -->
+<p class="relative z-10 mt-3 text-caption-1 font-footnote text-secondary text-center px-8">
+        Point camera at digital visiting card or vCard QR code
+      </p>
+</div>
+<!-- 4. Decoded Instant Bottom Sheet (iOS Bottom Sheet Pattern) -->
+<section aria-label="Detected Contact Card" class="z-30 w-full bg-surface-container-lowest rounded-t-[32px] ios-sheet-shadow border-t border-surface-container-highest px-space-lg pt-3 pb-3 flex flex-col mt-auto transition-transform">
+<!-- Apple HIG Grabber Bar -->
+<div class="w-full flex justify-center pb-2">
+<div class="w-9 h-1 rounded-full bg-surface-container-highest"></div>
+</div>
+<!-- Detection Status Header Badge -->
+<div class="flex items-center justify-between mb-3">
+<div class="inline-flex items-center gap-1.5 bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full border border-[#C8E6C9]">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-caption-2 font-caption-2 font-semibold">vCard Detected · 100% Match</span>
+</div>
+<span class="text-caption-2 font-caption-2 text-secondary">Instant Sync</span>
+</div>
+<!-- Contact Preview Card (Level 1 Grouped Apple Inset Style) -->
+<div class="bg-surface-container-low rounded-2xl p-3.5 border border-surface-container-highest mb-3">
+<!-- Top Monogram & Identity Info -->
+<div class="flex items-center space-x-3 pb-3 border-b border-surface-container-highest/80">
+<!-- Monogram Badge -->
+<div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-fixed to-surface-variant flex items-center justify-center border border-outline-variant/30 flex-shrink-0 shadow-sm">
+<span class="text-headline font-headline text-primary font-bold">RK</span>
+</div>
+<!-- Name & Designation -->
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-1">
+<h2 class="text-headline font-headline text-on-surface truncate">Rachit Kapur</h2>
+<span class="material-symbols-outlined text-primary text-[17px]" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="text-footnote font-footnote text-secondary truncate">Director · N.K. Kapur &amp; Co.</p>
+</div>
+<!-- Share / Export Quick Icon -->
+<button aria-label="Share card" class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center border border-surface-container-highest text-secondary active:opacity-60" type="button">
+<span class="material-symbols-outlined text-[17px]" data-icon="ios_share">ios_share</span>
+</button>
+</div>
+<!-- Contact Rows (Native HIG Table Row Layout) -->
+<div class="pt-2.5 space-y-2">
+<!-- Phone Row -->
+<div class="flex items-center justify-between text-footnote">
+<div class="flex items-center space-x-2 text-secondary min-w-0">
+<span class="material-symbols-outlined text-[17px] text-primary" data-icon="phone">phone</span>
+<span class="font-footnote text-on-surface font-medium truncate">+91 88008 88473</span>
+</div>
+<div class="flex items-center space-x-1.5 flex-shrink-0">
+<a aria-label="Call" class="w-7 h-7 rounded-full bg-surface-container-lowest border border-surface-container-highest flex items-center justify-center text-primary active:opacity-60" href="tel:+918800888473">
+<span class="material-symbols-outlined text-[15px]" data-icon="call">call</span>
+</a>
+<button aria-label="Copy Phone" class="w-7 h-7 rounded-full bg-surface-container-lowest border border-surface-container-highest flex items-center justify-center text-secondary active:opacity-60" type="button">
+<span class="material-symbols-outlined text-[15px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Email Row -->
+<div class="flex items-center justify-between text-footnote">
+<div class="flex items-center space-x-2 text-secondary min-w-0">
+<span class="material-symbols-outlined text-[17px] text-primary" data-icon="mail">mail</span>
+<span class="font-footnote text-on-surface font-medium truncate">rachitkapur@gmail.com</span>
+</div>
+<a aria-label="Send email" class="w-7 h-7 rounded-full bg-surface-container-lowest border border-surface-container-highest flex items-center justify-center text-primary active:opacity-60 flex-shrink-0" href="mailto:rachitkapur@gmail.com">
+<span class="material-symbols-outlined text-[15px]" data-icon="send">send</span>
+</a>
+</div>
+<!-- Company Row -->
+<div class="flex items-center space-x-2 text-footnote text-secondary pt-0.5">
+<span class="material-symbols-outlined text-[17px] text-secondary" data-icon="apartment">apartment</span>
+<span class="font-footnote text-on-surface truncate">N.K. Kapur &amp; Co. Pvt. Ltd.</span>
+</div>
+</div>
+</div>
+<!-- Action Buttons Stack (Apple HIG Guidelines) -->
+<div class="flex flex-col space-y-2">
+<!-- Primary Action: Import Contact Instantly -->
+<button class="w-full h-[48px] bg-primary-container text-on-primary-container font-headline text-callout rounded-xl flex items-center justify-center space-x-2 active:opacity-80 transition-all shadow-[0_2px_8px_rgba(0,112,235,0.25)]" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="person_add">person_add</span>
+<span>Import Contact Instantly</span>
+</button>
+<!-- Secondary Action: Scan Another QR -->
+<button class="w-full h-[44px] bg-surface-container-lowest border border-surface-container-highest text-primary font-headline text-subheadline rounded-xl flex items-center justify-center space-x-1.5 active:bg-surface-container-low transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+<span>Scan Another QR</span>
+</button>
+</div>
+<!-- 5. iOS Standard Home Indicator Bar -->
+<div class="w-full flex justify-center pt-3 pb-1">
+<div class="w-[134px] h-[5px] bg-on-surface/30 rounded-full"></div>
+</div>
+</section>
+</main>
+<script>
+    // Subtle Torch Button toggle feedback
+    const torchBtn = document.getElementById('torchBtn');
+    let torchActive = false;
+    if (torchBtn) {
+      torchBtn.addEventListener('click', () => {
+        torchActive = !torchActive;
+        if (torchActive) {
+          torchBtn.classList.remove('text-secondary', 'bg-surface-container-lowest');
+          torchBtn.classList.add('bg-primary-container', 'text-white');
+        } else {
+          torchBtn.classList.add('text-secondary', 'bg-surface-container-lowest');
+          torchBtn.classList.remove('bg-primary-container', 'text-white');
+        }
+      });
+    }
+  </script>
+</body></html>

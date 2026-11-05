@@ -9,6 +9,7 @@ import {
   Trash2,
   AlertCircle,
   Sparkles,
+  FlaskConical,
 } from 'lucide-react';
 import CameraScanner from '../components/CameraScanner';
 import ImageCropper from '../components/ImageCropper';
@@ -257,7 +258,7 @@ export default function Scanner() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '1.3rem' }}>🧪</span>
+                <FlaskConical size={20} color="#166534" />
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#166534' }}>
                     Trained Cards Testing Suite

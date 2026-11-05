@@ -3,6 +3,8 @@ node_modules/
 .pnpm-store/
 
 # Python & Wheels
+.venv/
+ocr-service/.venv/
 *.whl
 __pycache__/
 *.pyc
@@ -25,6 +27,9 @@ build/
 server/uploads/
 server/temp/
 *.log
+*.traineddata
+server/extracted_*/
+stitch-designs/
 
 # Prisma generated & SQLite local fallbacks if any
 *.db
